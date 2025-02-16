@@ -321,44 +321,38 @@ def setup_database():
         if conn:
             conn.close()
 def hash_password(password):
+    """Consistent password hashing"""
     return hashlib.sha256(password.encode()).hexdigest()
-
+    
 def create_user(full_name, email, phone, password, role='user'):
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
+    """Create a new user with proper password hashing"""
     try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Hash password consistently
+        hashed_password = hash_password(password)
+        
+        # Print for debugging (remove in production)
+        print(f"Creating user: {email}")
+        
         c.execute(
             'INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)',
-            (full_name, email, phone, hash_password(password), role)
+            (full_name, email, phone, hashed_password, role)
         )
         conn.commit()
+        
+        # Verify the user was created
+        c.execute('SELECT * FROM users WHERE email = ?', (email,))
+        user = c.fetchone()
+        print(f"User created: {user is not None}")
+        
         return True
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as e:
+        print(f"Error creating user: {e}")
         return False
     finally:
         conn.close()
-
-def verify_user(email, password):
-    # Check admin credentials first
-    if email == "admin@luxuryrentals.com" and password == "admin123":
-        return True
-    
-    try:
-        # Check regular user credentials
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
-        c.execute('SELECT password FROM users WHERE email = ?', (email,))
-        result = c.fetchone()
-        conn.close()
-        
-        if result and result[0] == hash_password(password):
-            return True
-        return False
-        
-    except sqlite3.Error as e:
-        print(f"Database error during verification: {e}")
-        return False
-
 
 # Create admin user if not exists
 def create_admin():
@@ -382,8 +376,34 @@ def create_admin():
     
     conn.close()
 
-if st.button("Create Admin User"):
-    create_admin()
+def verify_user(email, password):
+    """Verify user credentials with better error handling"""
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Print for debugging (remove in production)
+        print(f"Verifying user: {email}")
+        
+        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        result = c.fetchone()
+        
+        if result:
+            stored_password = result[0]
+            hashed_input = hash_password(password)
+            
+            # Print for debugging (remove in production)
+            print(f"Password match: {stored_password == hashed_input}")
+            
+            return stored_password == hashed_input
+        return False
+        
+    except sqlite3.Error as e:
+        print(f"Database error during verification: {e}")
+        return False
+    finally:
+        conn.close()
+
 
 # Notification functions
 def create_notification(user_email, message, type):
@@ -443,36 +463,38 @@ def login_page():
         password = st.text_input('Password', type='password')
         
         if st.button('Login', key='login_submit'):
+            # Add debug information
+            st.info(f"Attempting login for: {email}")
+            
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
+                st.success('Login successful!')
                 
-                try:
-                    # Check if it's the admin account
-                    if email == "admin@luxuryrentals.com":
-                        role = 'admin'
-                    else:
-                        # Check database for user role
-                        conn = sqlite3.connect('car_rental.db')
-                        c = conn.cursor()
-                        c.execute('SELECT role FROM users WHERE email = ?', (email,))
-                        result = c.fetchone()
-                        conn.close()
-                        
-                        role = result[0] if result else 'user'
-                    
-                    if role == 'admin':
-                        st.session_state.current_page = 'admin_panel'
-                    else:
-                        st.session_state.current_page = 'browse_cars'
-                    st.success('Login successful!')
+                # Get user role
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                c.execute('SELECT role FROM users WHERE email = ?', (email,))
+                role = c.fetchone()[0] if c.fetchone() else 'user'
+                conn.close()
                 
-                except sqlite3.Error as e:
-                    print(f"Database error: {e}")
-                    st.error("An error occurred during login. Please try again.")
+                if role == 'admin':
+                    st.session_state.current_page = 'admin_panel'
+                else:
+                    st.session_state.current_page = 'browse_cars'
             else:
-                st.error('Invalid credentials')
-
+                st.error('Invalid credentials. Please check your email and password.')
+                # Add debug information
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                c.execute('SELECT COUNT(*) FROM users WHERE email = ?', (email,))
+                user_exists = c.fetchone()[0] > 0
+                conn.close()
+                if user_exists:
+                    st.error("User exists but password doesn't match")
+                else:
+                    st.error("User not found in database")
+                    
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -870,14 +892,15 @@ def create_folder_structure():
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-# Update the main execution
 if __name__ == '__main__':
     try:
+        # Ensure the database file exists and is properly initialized
+        if not os.path.exists('car_rental.db'):
+            setup_database()
+            st.success("Database initialized successfully")
+        
         # Create necessary folders
         create_folder_structure()
-        
-        # Initialize database
-        setup_database()
         
         # Run the main application
         main()
