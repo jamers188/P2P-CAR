@@ -1125,6 +1125,14 @@ def show_listings_by_status(status):
     
     conn.close()
 def show_car_details(car):
+    # Add a Go Back button
+    col1, col2 = st.columns([1,7])
+    with col1:
+        if st.button('← Back'):
+            st.session_state.current_page = 'browse_cars'
+            st.session_state.selected_car = None
+            st.rerun()
+    
     st.markdown(f"<h1>{car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
     
     # Fetch all images for this car
@@ -1143,7 +1151,7 @@ def show_car_details(car):
                 st.image(
                     f"data:image/jpeg;base64,{img_data}", 
                     caption=f"Image {idx+1}",
-                    use_column_width=True
+                    use_container_width=True  # Updated from use_column_width
                 )
         st.markdown("</div>", unsafe_allow_html=True)
     
@@ -1169,7 +1177,6 @@ def show_car_details(car):
     if st.button('Book Now'):
         st.session_state.current_page = 'book_car'
         st.rerun()
-
 
 
 def show_approved_listings():
