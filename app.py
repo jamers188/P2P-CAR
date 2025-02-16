@@ -1725,150 +1725,138 @@ def main():
     else:
         update_bookings_table()
     
-    # Initialize session state variables if not exists
+    # Initialize session state variables with persistent keys
     if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
+        st.session_state['logged_in'] = False
     
     if 'user_email' not in st.session_state:
-        st.session_state.user_email = None
+        st.session_state['user_email'] = None
     
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
+        st.session_state['current_page'] = 'welcome'
     
-    if 'selected_car' not in st.session_state:
-        st.session_state.selected_car = None
-    
-    # Ensure the last logged-in state is preserved
-    if st.session_state.logged_in:
-        # Optional: Add a check to verify the user still exists in the database
+    # Verify login state
+    if st.session_state['logged_in']:
         try:
+            # Verify user exists in database
             conn = sqlite3.connect('car_rental.db')
             c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE email = ?', (st.session_state.user_email,))
+            c.execute('SELECT * FROM users WHERE email = ?', (st.session_state['user_email'],))
             user = c.fetchone()
             conn.close()
             
+            # If user doesn't exist, log out
             if not user:
-                # If user no longer exists, log out
-                st.session_state.logged_in = False
-                st.session_state.user_email = None
-                st.session_state.current_page = 'welcome'
+                st.session_state['logged_in'] = False
+                st.session_state['user_email'] = None
+                st.session_state['current_page'] = 'welcome'
         except Exception as e:
-            print(f"Error checking user: {e}")
-    
-    # If not logged in, default to welcome or last non-login page
-    if not st.session_state.logged_in:
-        st.session_state.current_page = 'welcome'
+            print(f"Login verification error: {e}")
     
     # Sidebar navigation for logged-in users
-    if st.session_state.logged_in:
+    if st.session_state['logged_in']:
         with st.sidebar:
             st.markdown("### My Account")
-            st.write(f"Welcome, {st.session_state.user_email}")
+            st.write(f"Welcome, {st.session_state['user_email']}")
             
             # Get user role
-            role = get_user_role(st.session_state.user_email)
+            role = get_user_role(st.session_state['user_email'])
             
             # Show admin panel button for admin users
             if role == 'admin':
                 st.markdown("### Admin Functions")
                 if st.button("🔧 Admin Panel"):
-                    st.session_state.current_page = 'admin_panel'
+                    st.session_state['current_page'] = 'admin_panel'
                 st.markdown("---")
             
-            # Regular navigation
-            if st.button("🚗 Browse Cars"):
-                st.session_state.current_page = 'browse_cars'
-
-            if st.button("🚘 My Bookings"):
-                st.session_state.current_page = 'my_bookings'
-
-            if st.button("➕ List Your Car"):
-                st.session_state.current_page = 'list_your_car'
-                            
-            if st.button("📝 My Listings"):
-                st.session_state.current_page = 'my_listings'
-
-            if st.button("📋 Bookings for My Cars"):
-                st.session_state.current_page = 'owner_bookings'
+            # Navigation buttons
+            nav_items = [
+                ("🚗 Browse Cars", 'browse_cars'),
+                ("📝 My Listings", 'my_listings'),
+                ("➕ List Your Car", 'list_your_car'),
+                ("🚗 My Bookings", 'my_bookings'),
+                ("📋 Bookings for My Cars", 'owner_bookings')
+            ]
             
-            # Show notifications with count
-            unread_count = get_unread_notifications_count(st.session_state.user_email)
-            if unread_count > 0:
-                if st.button(f"🔔 Notifications ({unread_count})"):
-                    st.session_state.current_page = 'notifications'
-            else:
-                if st.button("🔔 Notifications"):
-                    st.session_state.current_page = 'notifications'
+            for label, page in nav_items:
+                if st.button(label):
+                    st.session_state['current_page'] = page
+            
+            # Notifications
+            unread_count = get_unread_notifications_count(st.session_state['user_email'])
+            notification_label = f"🔔 Notifications ({unread_count})" if unread_count > 0 else "🔔 Notifications"
+            if st.button(notification_label):
+                st.session_state['current_page'] = 'notifications'
             
             st.markdown("---")
+            
+            # Logout button
             if st.button("👋 Logout"):
-                st.session_state.logged_in = False
-                st.session_state.user_email = None
-                st.session_state.current_page = 'welcome'
+                st.session_state['logged_in'] = False
+                st.session_state['user_email'] = None
+                st.session_state['current_page'] = 'welcome'
                 st.experimental_rerun()
     
-    # Page routing logic
-    if st.session_state.current_page == 'welcome':
-        welcome_page()
-    elif st.session_state.current_page == 'login':
-        login_page()
-    elif st.session_state.current_page == 'signup':
-        signup_page()
-    elif st.session_state.current_page == 'admin_panel':
-        if st.session_state.logged_in and get_user_role(st.session_state.user_email) == 'admin':
-            admin_panel()
-        else:
-            st.error("Access denied. Admin privileges required.")
-            st.session_state.current_page = 'browse_cars'
-    elif st.session_state.current_page == 'browse_cars':
-        browse_cars_page()
-    elif st.session_state.current_page == 'list_your_car':
-        if st.session_state.logged_in:
-            list_your_car_page()
-        else:
-            st.warning("Please log in to list your car")
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'my_listings':
-        if st.session_state.logged_in:
-            my_listings_page()
-        else:
-            st.warning("Please log in to view your listings")
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'notifications':
-        if st.session_state.logged_in:
-            notifications_page()
-        else:
-            st.warning("Please log in to view notifications")
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'car_details':
-        if st.session_state.selected_car:
-            show_car_details(st.session_state.selected_car)
-        else:
-            st.error("No car selected")
-            st.session_state.current_page = 'browse_cars'
-    elif st.session_state.current_page == 'book_car':
-        if st.session_state.logged_in:
-            book_car_page()
-        else:
-            st.warning("Please log in to book a car")
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'my_bookings':
-        if st.session_state.logged_in:
-            my_bookings_page()
-        else:
-            st.warning("Please log in to view your bookings")
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'owner_bookings':
-        if st.session_state.logged_in:
-            owner_bookings_page()
-        else:
-            st.warning("Please log in to view bookings")
-            st.session_state.current_page = 'login'
-
-if __name__ == '__main__':
+    # Page routing
+    current_page = st.session_state['current_page']
+    
+    # Authentication-required pages
+    auth_pages = [
+        'list_your_car', 'my_listings', 'notifications', 
+        'book_car', 'my_bookings', 'owner_bookings', 'admin_panel'
+    ]
+    
+    # Page rendering logic
     try:
-        main()
+        if current_page == 'welcome':
+            welcome_page()
+        elif current_page == 'login':
+            login_page()
+        elif current_page == 'signup':
+            signup_page()
+        elif current_page in auth_pages:
+            # Check authentication for protected pages
+            if not st.session_state['logged_in']:
+                st.warning("Please log in to access this page")
+                st.session_state['current_page'] = 'login'
+                login_page()
+            else:
+                # Admin page special check
+                if current_page == 'admin_panel':
+                    if get_user_role(st.session_state['user_email']) != 'admin':
+                        st.error("Access denied. Admin privileges required.")
+                        st.session_state['current_page'] = 'browse_cars'
+                        browse_cars_page()
+                    else:
+                        admin_panel()
+                # Other authenticated pages
+                elif current_page == 'list_your_car':
+                    list_your_car_page()
+                elif current_page == 'my_listings':
+                    my_listings_page()
+                elif current_page == 'notifications':
+                    notifications_page()
+                elif current_page == 'book_car':
+                    book_car_page()
+                elif current_page == 'my_bookings':
+                    my_bookings_page()
+                elif current_page == 'owner_bookings':
+                    owner_bookings_page()
+        else:
+            # Default public pages
+            if current_page == 'browse_cars':
+                browse_cars_page()
+            elif current_page == 'car_details':
+                if st.session_state.get('selected_car'):
+                    show_car_details(st.session_state['selected_car'])
+                else:
+                    browse_cars_page()
+            else:
+                welcome_page()
+    
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         print(f"Error details: {str(e)}")
+
+if __name__ == '__main__':
+    main()
