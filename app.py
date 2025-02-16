@@ -633,9 +633,6 @@ def main():
     
     # Setup database and admin user
     setup_database()
-    
-    # Run the main application
-    main()
 
     # Create admin user if not exists
     create_admin_user()
