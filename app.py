@@ -170,10 +170,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'logged_in' not in st.session_state:
+# Load existing session first before resetting values
+if 'logged_in' in st.session_state and 'user_email' in st.session_state:
+    pass  # Keep the current session values
+else:
     st.session_state.logged_in = False
-if 'user_email' not in st.session_state:
     st.session_state.user_email = None
+
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'welcome'
 if 'selected_car' not in st.session_state:
