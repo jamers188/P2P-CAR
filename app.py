@@ -197,8 +197,6 @@ def setup_database():
         ''')
         # In setup_database() function, modify the bookings table creation
 
-        def setup_database():
-    # ... (previous code)
     
     # Modify the bookings table creation
         c.execute('''
