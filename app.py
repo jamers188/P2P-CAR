@@ -187,12 +187,12 @@ def init_db():
             conn.close()
 
 def setup_database():
-    """Ensure database is properly initialized"""
+    """Initialize all database tables and admin user"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-        
-        # Create users table
+
+        # Create users table first (as other tables depend on it)
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -204,8 +204,38 @@ def setup_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
-        # Create other necessary tables
+
+        # Create car_listings table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS car_listings (
+                id INTEGER PRIMARY KEY,
+                owner_email TEXT NOT NULL,
+                model TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                price REAL NOT NULL,
+                location TEXT NOT NULL,
+                description TEXT,
+                category TEXT NOT NULL,
+                specs TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (owner_email) REFERENCES users (email)
+            )
+        ''')
+
+        # Create listing_images table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS listing_images (
+                id INTEGER PRIMARY KEY,
+                listing_id INTEGER NOT NULL,
+                image_data TEXT NOT NULL,
+                is_primary BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (listing_id) REFERENCES car_listings (id)
+            )
+        ''')
+
+        # Create bookings table
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -224,10 +254,46 @@ def setup_database():
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
         ''')
-        
+
+        # Create notifications table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL,
+                read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+
+        # Create admin_reviews table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS admin_reviews (
+                id INTEGER PRIMARY KEY,
+                listing_id INTEGER NOT NULL,
+                admin_email TEXT NOT NULL,
+                comment TEXT,
+                status TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (listing_id) REFERENCES car_listings (id),
+                FOREIGN KEY (admin_email) REFERENCES users (email)
+            )
+        ''')
+
+        # Create indexes for better performance
+        c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
+
         # Ensure admin user exists
         c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
-        if not c.fetchone():
+        admin_exists = c.fetchone()
+        
+        if not admin_exists:
             c.execute('''
                 INSERT INTO users (full_name, email, phone, password, role)
                 VALUES (?, ?, ?, ?, ?)
@@ -238,16 +304,18 @@ def setup_database():
                 hash_password('admin123'),
                 'admin'
             ))
-        
+
         conn.commit()
+        print("Database initialized successfully")
         
     except sqlite3.Error as e:
-        print(f"Database setup error: {e}")
+        print(f"Database error: {e}")
         raise
     finally:
         if conn:
             conn.close()
-# Authentication functions
+
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -683,12 +751,7 @@ def display_cars(search=""):
     conn.close()
 
 def main():
-    
-    setup_database()
-    create_folder_structure()
-    main() 
-
-    
+        
     # Sidebar navigation for logged-in users
     if st.session_state.logged_in:
         with st.sidebar:
@@ -805,9 +868,16 @@ def create_folder_structure():
         if not os.path.exists(folder):
             os.makedirs(folder)
 
+# Update the main execution
 if __name__ == '__main__':
-    # Setup application structure
-    create_folder_structure()
-    
-    # Run the main application
-    main()
+    try:
+        # Create necessary folders
+        create_folder_structure()
+        
+        # Initialize database
+        setup_database()
+        
+        # Run the main application
+        main()
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
