@@ -188,39 +188,24 @@ def init_db():
 
 def setup_database():
     """Ensure database is properly initialized"""
-    # Create database and tables
-    init_db()
-    
-    # Create admin user
-    try:
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
-        
-        # Check if admin exists
-        c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
-        admin_exists = c.fetchone()
-        
-        if not admin_exists:
-            # Create admin user
-            admin_password = hash_password('admin123')  # Change this in production
-            c.execute('''
-                INSERT INTO users (full_name, email, phone, password, role)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (
-                'Admin User',
-                'admin@luxuryrentals.com',
-                '+971500000000',
-                admin_password,
-                'admin'
-            ))
-            conn.commit()
-            
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-    finally:
-        if conn:
-            conn.close()
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
 
+    # Create users table if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            full_name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
 # Authentication functions
 def hash_password(password):
@@ -246,7 +231,7 @@ def verify_user(email, password):
     if email == "admin@luxuryrentals.com" and password == "admin123":
         return True
 
-    # Check in database for regular users
+    # Check in database for normal users
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     c.execute('SELECT password FROM users WHERE email = ?', (email,))
@@ -345,21 +330,27 @@ def login_page():
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                
-                # Check if user is admin
+
+                # Check user role (handling empty result)
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
                 c.execute('SELECT role FROM users WHERE email = ?', (email,))
-                role = c.fetchone()[0]
+                result = c.fetchone()
                 conn.close()
-                
-                if role == 'admin':
-                    st.session_state.current_page = 'admin_panel'
+
+                # Check if user exists in DB
+                if result:
+                    role = result[0]
+                    if role == 'admin':
+                        st.session_state.current_page = 'admin_panel'
+                    else:
+                        st.session_state.current_page = 'browse_cars'
+                    st.success('Login successful!')
                 else:
-                    st.session_state.current_page = 'browse_cars'
-                st.success('Login successful!')
+                    st.error("User not found. Please check your email.")
             else:
                 st.error('Invalid credentials')
+
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
