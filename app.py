@@ -1449,7 +1449,7 @@ def my_bookings_page():
             
             # Status display with color coding
             status_colors = {
-                'pending': 'yellow',
+                'pending': 'black',
                 'confirmed': 'green',
                 'rejected': 'red'
             }
