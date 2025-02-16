@@ -12,9 +12,9 @@ import json
 
 SESSION_FILE = "session.json"
 
-def save_session(email):
-    """Save login session to a file."""
-    session_data = {"logged_in": True, "user_email": email}
+def save_session(email, page):
+    """Save login session and current page to a file."""
+    session_data = {"logged_in": True, "user_email": email, "current_page": page}
     with open(SESSION_FILE, "w") as f:
         json.dump(session_data, f)
 
@@ -186,23 +186,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-# Load existing session first before resetting values
-if 'logged_in' in st.session_state and 'user_email' in st.session_state:
-    pass  # Keep the current session values
-else:
-    st.session_state.logged_in = False
-    st.session_state.user_email = None
-
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = 'welcome'
-if 'selected_car' not in st.session_state:
-    st.session_state.selected_car = None
 # Load previous session if it exists
 session_data = load_session()
 if session_data:
     st.session_state.logged_in = session_data["logged_in"]
     st.session_state.user_email = session_data["user_email"]
+    st.session_state.current_page = session_data["current_page"]
+else:
+    st.session_state.logged_in = False
+    st.session_state.user_email = None
+    st.session_state.current_page = 'welcome'
 
 # Database setup
 def setup_database():
@@ -621,7 +614,10 @@ def login_page():
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-            
+                st.session_state.current_page = 'browse_cars'  # Redirect after login
+                save_session(email, 'browse_cars')  # Save session to file
+                st.experimental_rerun()
+
                 # Get user role
                 role = get_user_role(email)
             
@@ -1820,8 +1816,12 @@ def main():
 
           
     # Page routing
-    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup']:
+    if not st.session_state.logged_in:
         st.session_state.current_page = 'welcome'
+    else:
+        save_session(st.session_state.user_email, st.session_state.current_page)  # Save session on page change
+
+    
     
     # Page rendering
     page_handlers = {
