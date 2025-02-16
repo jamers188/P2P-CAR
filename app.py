@@ -1318,35 +1318,55 @@ def my_bookings_page():
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, model, year, owner_email, image_data) = booking
         
-        st.markdown(f"""
-            <div class='car-card'>
-                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <h3 style='color: #4B0082;'>{model} ({year})</h3>
-                    <span class='status-badge {booking_status.lower()}'>
-                        {booking_status.upper()}
-                    </span>
-                </div>
-                
-                {f"<img src='data:image/jpeg;base64,{image_data}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>" if image_data else ''}
-                
-                <div style='margin-top: 1rem;'>
-                    <p><strong>Pickup Date:</strong> {pickup_date}</p>
-                    <p><strong>Return Date:</strong> {return_date}</p>
-                    <p><strong>Location:</strong> {location}</p>
-                    <p><strong>Total Price:</strong> {format_currency(total_price)}</p>
-                    
-                    <h4>Additional Services:</h4>
-                    <ul>
-                        {f"<li>Insurance</li>" if insurance else ""}
-                        {f"<li>Driver</li>" if driver else ""}
-                        {f"<li>Delivery</li>" if delivery else ""}
-                        {f"<li>VIP Service</li>" if vip_service else ""}
-                    </ul>
-                    
-                    <p><strong>Owner Email:</strong> {owner_email}</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # Create a card-like container
+        with st.container():
+            # Display car image if available
+            if image_data:
+                st.image(f"data:image/jpeg;base64,{image_data}", use_container_width=True)
+            
+            # Car details
+            st.subheader(f"{model} ({year})")
+            
+            # Status badge
+            status_color = {
+                'pending': 'warning',
+                'confirmed': 'success',
+                'rejected': 'error'
+            }
+            st.metric(label="Booking Status", value=booking_status.upper(), 
+                      help="Current status of your booking", 
+                      delta_color=status_color.get(booking_status.lower(), 'normal'))
+            
+            # Booking details
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Pickup Date:** {pickup_date}")
+                st.write(f"**Location:** {location}")
+                st.write(f"**Owner Email:** {owner_email}")
+            
+            with col2:
+                st.write(f"**Return Date:** {return_date}")
+                st.write(f"**Total Price:** {format_currency(total_price)}")
+            
+            # Additional Services
+            st.subheader("Additional Services")
+            services = []
+            if insurance:
+                services.append("Insurance")
+            if driver:
+                services.append("Driver")
+            if delivery:
+                services.append("Delivery")
+            if vip_service:
+                services.append("VIP Service")
+            
+            if services:
+                for service in services:
+                    st.success(service)
+            else:
+                st.info("No additional services selected")
+            
+            st.markdown("---")
 
 def owner_bookings_page():
     st.markdown("<h1>Bookings for My Cars</h1>", unsafe_allow_html=True)
