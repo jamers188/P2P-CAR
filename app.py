@@ -177,7 +177,7 @@ def init_db():
                 driver BOOLEAN,
                 delivery BOOLEAN,
                 vip_service BOOLEAN,
-                status TEXT DEFAULT 'pending',
+                booking_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
@@ -244,7 +244,7 @@ def init_db():
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
-        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
         
         conn.commit()
@@ -256,41 +256,7 @@ def init_db():
     finally:
         if conn:
             conn.close()
-
-# Sample car data for featured listings
-cars_data = {
-    'Luxury': [
-        {
-            'id': 1,
-            'model': 'Lamborghini Urus',
-            'price': 2500,
-            'location': 'Dubai Marina',
-            'image': 'https://example.com/urus.jpg',
-            'specs': {
-                'engine': '4.0L V8 Twin-Turbo',
-                'power': '641 hp',
-                'acceleration': '0-60 mph in 3.5s'
-            },
-            'available': True
-        }
-    ],
-    'SUV': [
-        {
-            'id': 2,
-            'model': 'Range Rover Autobiography',
-            'price': 1500,
-            'location': 'Dubai Marina',
-            'image': 'https://example.com/range_rover.jpg',
-            'specs': {
-                'engine': '5.0L V8',
-                'power': '518 hp',
-                'acceleration': '0-60 mph in 5.2s'
-            },
-            'available': True
-        }
-    ]
-}
-
+            
 def setup_database():
     """Ensure database is properly initialized"""
     # Create database and tables
