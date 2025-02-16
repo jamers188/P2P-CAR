@@ -585,10 +585,7 @@ def welcome_page():
             st.session_state.current_page = 'browse_cars'
 
 def login_page():
-    if st.button('← Back to Welcome', key='login_back'):
-        st.session_state.current_page = 'welcome'
-    
-    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
+ 
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
