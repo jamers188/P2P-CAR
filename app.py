@@ -195,8 +195,7 @@ def setup_database():
                 FOREIGN KEY (listing_id) REFERENCES car_listings (id)
             )
         ''')
-
-        # Create bookings table
+        # In setup_database() function, modify the bookings table creation
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -212,6 +211,10 @@ def setup_database():
                 vip_service BOOLEAN,
                 booking_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                insurance_cost REAL DEFAULT 0,
+                driver_cost REAL DEFAULT 0,
+                delivery_cost REAL DEFAULT 0,
+                vip_service_cost REAL DEFAULT 0,
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
         ''')
@@ -1194,6 +1197,14 @@ def book_car_page():
     
     st.markdown(f"<h1>Book {car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
     
+    # Define service prices
+    service_prices = {
+        'insurance': 50,  # per day
+        'driver': 100,    # per day
+        'delivery': 200,  # flat rate
+        'vip_service': 300  # flat rate
+    }
+    
     # Booking form
     with st.form("booking_form"):
         st.markdown("### Booking Details")
@@ -1212,25 +1223,40 @@ def book_car_page():
         st.markdown("### Additional Services")
         col1, col2, col3 = st.columns(3)
         with col1:
-            insurance = st.checkbox("Insurance")
+            insurance = st.checkbox(f"Insurance (AED {service_prices['insurance']}/day)")
         with col2:
-            driver = st.checkbox("Driver")
+            driver = st.checkbox(f"Driver (AED {service_prices['driver']}/day)")
         with col3:
-            delivery = st.checkbox("Delivery")
+            delivery = st.checkbox(f"Delivery (Flat AED {service_prices['delivery']})")
         
-        vip_service = st.checkbox("VIP Service")
+        vip_service = st.checkbox(f"VIP Service (Flat AED {service_prices['vip_service']})")
         
         # Calculate total price
         rental_days = (return_date - pickup_date).days + 1
         base_price = car['price'] * rental_days
         
         # Additional service costs
-        insurance_cost = 50 * rental_days if insurance else 0
-        driver_cost = 100 * rental_days if driver else 0
-        delivery_cost = 200 if delivery else 0
-        vip_cost = 300 if vip_service else 0
+        insurance_cost = service_prices['insurance'] * rental_days if insurance else 0
+        driver_cost = service_prices['driver'] * rental_days if driver else 0
+        delivery_cost = service_prices['delivery'] if delivery else 0
+        vip_cost = service_prices['vip_service'] if vip_service else 0
         
         total_price = base_price + insurance_cost + driver_cost + delivery_cost + vip_cost
+        
+        # Display price breakdown
+        st.markdown("### Price Breakdown")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"Base Rental ({rental_days} days): {format_currency(base_price)}")
+            if insurance:
+                st.write(f"Insurance: {format_currency(insurance_cost)}")
+            if driver:
+                st.write(f"Driver: {format_currency(driver_cost)}")
+        with col2:
+            if delivery:
+                st.write(f"Delivery: {format_currency(delivery_cost)}")
+            if vip_service:
+                st.write(f"VIP Service: {format_currency(vip_cost)}")
         
         st.markdown(f"### Total Cost: {format_currency(total_price)}")
         
@@ -1243,12 +1269,12 @@ def book_car_page():
                 c = conn.cursor()
                 
                 # Insert booking
-               
                 c.execute('''
                     INSERT INTO bookings 
                     (user_email, car_id, pickup_date, return_date, location, 
-                    total_price, insurance, driver, delivery, vip_service, booking_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    total_price, insurance, driver, delivery, vip_service,
+                    insurance_cost, driver_cost, delivery_cost, vip_service_cost)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     st.session_state.user_email, 
                     car['id'], 
@@ -1260,7 +1286,10 @@ def book_car_page():
                     driver, 
                     delivery, 
                     vip_service,
-                    'pending'  # Add a default status
+                    insurance_cost,
+                    driver_cost,
+                    delivery_cost,
+                    vip_cost
                 ))
                 
                 conn.commit()
@@ -1316,7 +1345,8 @@ def my_bookings_page():
         # Unpack booking details
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
-         booking_status, created_at, model, year, owner_email, image_data) = booking
+         booking_status, created_at, owner_email, model, year, image_data,
+         insurance_cost, driver_cost, delivery_cost, vip_service_cost) = booking
         
         # Create a card-like container
         with st.container():
@@ -1327,15 +1357,8 @@ def my_bookings_page():
             # Car details
             st.subheader(f"{model} ({year})")
             
-            # Status badge
-            status_colors = {
-                'pending': 'yellow',
-                'confirmed': 'green',
-                'rejected': 'red'
-            }
-            status_color = status_colors.get(booking_status.lower(), 'blue')
-            st.markdown(f"### Booking Status: {booking_status.upper()}", 
-                        help="Current status of your booking")
+            # Status display
+            st.markdown(f"### Booking Status: {booking_status.upper()}")
             
             # Booking details
             col1, col2 = st.columns(2)
@@ -1348,21 +1371,36 @@ def my_bookings_page():
                 st.write(f"**Return Date:** {return_date}")
                 st.write(f"**Total Price:** {format_currency(total_price)}")
             
+            # Price Breakdown
+            st.subheader("Price Breakdown")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"Base Rental: {format_currency(total_price - insurance_cost - driver_cost - delivery_cost - vip_service_cost)}")
+                if insurance:
+                    st.write(f"Insurance: {format_currency(insurance_cost)}")
+                if driver:
+                    st.write(f"Driver: {format_currency(driver_cost)}")
+            with col2:
+                if delivery:
+                    st.write(f"Delivery: {format_currency(delivery_cost)}")
+                if vip_service:
+                    st.write(f"VIP Service: {format_currency(vip_service_cost)}")
+            
             # Additional Services
             st.subheader("Additional Services")
             services = []
             if insurance:
-                services.append("Insurance")
+                services.append(("Insurance", insurance_cost))
             if driver:
-                services.append("Driver")
+                services.append(("Driver", driver_cost))
             if delivery:
-                services.append("Delivery")
+                services.append(("Delivery", delivery_cost))
             if vip_service:
-                services.append("VIP Service")
+                services.append(("VIP Service", vip_service_cost))
             
             if services:
-                for service in services:
-                    st.info(service)
+                for service, cost in services:
+                    st.info(f"{service}: {format_currency(cost)}")
             else:
                 st.info("No additional services selected")
             
