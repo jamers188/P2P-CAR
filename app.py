@@ -196,9 +196,9 @@ st.markdown("""
 # Load previous session if it exists
 session_data = load_session()
 
-st.session_state.logged_in = session_data["logged_in"]
-st.session_state.user_email = session_data["user_email"]
-st.session_state.current_page = session_data["current_page"]
+st.session_state.logged_in = session_data.get("logged_in", False)
+st.session_state.user_email = session_data.get("user_email", None)
+st.session_state.current_page = session_data.get("current_page", "welcome")
 
 
 # Database setup
