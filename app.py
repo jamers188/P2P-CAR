@@ -940,20 +940,15 @@ def my_listings_page():
 def notifications_page():
     st.markdown("<h1>Notifications</h1>", unsafe_allow_html=True)
     
-    if st.button('← Back to Browse', key='notifications_back'):
-        st.session_state.current_page = 'browse_cars'
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button('← Back to Browse', key='notifications_back'):
+            st.session_state.current_page = 'browse_cars'
     
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Mark notifications as read
-    c.execute('''
-        UPDATE notifications 
-        SET read = TRUE 
-        WHERE user_email = ? AND read = FALSE
-    ''', (st.session_state.user_email,))
-    
-    # Get all notifications
+    # Fetch notifications
     c.execute('''
         SELECT * FROM notifications 
         WHERE user_email = ? 
@@ -961,20 +956,49 @@ def notifications_page():
     ''', (st.session_state.user_email,))
     
     notifications = c.fetchall()
-    conn.commit()
+    
+    # Clear notifications functionality
+    with col2:
+        if notifications:
+            if st.button('🗑️ Clear All'):
+                try:
+                    c.execute('''
+                        DELETE FROM notifications 
+                        WHERE user_email = ?
+                    ''', (st.session_state.user_email,))
+                    conn.commit()
+                    st.success("Notifications cleared!")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"Error clearing notifications: {e}")
+    
     conn.close()
     
     if not notifications:
         st.info("No notifications")
-    else:
-        for notif in notifications:
-            st.markdown(f"""
-                <div style='background-color: white; padding: 1rem; border-radius: 10px; 
-                     margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-                    <p style='margin: 0;'>{notif[2]}</p>
-                    <small style='color: #666;'>{notif[5]}</small>
-                </div>
-            """, unsafe_allow_html=True)
+        return
+    
+    for notif in notifications:
+        # Color code notifications by type
+        notification_colors = {
+            'welcome': 'blue',
+            'booking_confirmed': 'green',
+            'booking_rejected': 'red',
+            'listing_submitted': 'orange',
+            'listing_approved': 'green',
+            'listing_rejected': 'red'
+        }
+        
+        color = notification_colors.get(notif[3], 'black')
+        
+        st.markdown(f"""
+            <div style='background-color: white; padding: 1rem; border-radius: 10px; 
+                 margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                <p style='margin: 0; color: {color};'>{notif[2]}</p>
+                <small style='color: #666;'>{notif[5]}</small>
+            </div>
+        """, unsafe_allow_html=True)
+
 
 def admin_panel():
     st.markdown("<h1>Admin Panel</h1>", unsafe_allow_html=True)
@@ -1357,8 +1381,10 @@ def book_car_page():
 def my_bookings_page():
     st.markdown("<h1>My Bookings</h1>", unsafe_allow_html=True)
     
-    if st.button('← Back to Browse', key='bookings_back'):
-        st.session_state.current_page = 'browse_cars'
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button('← Back to Browse', key='bookings_back'):
+            st.session_state.current_page = 'browse_cars'
     
     # Connect to database
     conn = sqlite3.connect('car_rental.db')
@@ -1375,6 +1401,25 @@ def my_bookings_page():
     ''', (st.session_state.user_email,))
     
     bookings = c.fetchall()
+    
+    # Clear bookings functionality
+    with col2:
+        # Only allow clearing if there are non-pending bookings
+        completed_bookings = [b for b in bookings if b[11] != 'pending']
+        if completed_bookings:
+            if st.button('🗑️ Clear Completed'):
+                try:
+                    # Delete completed bookings
+                    c.execute('''
+                        DELETE FROM bookings 
+                        WHERE user_email = ? AND booking_status != 'pending'
+                    ''', (st.session_state.user_email,))
+                    conn.commit()
+                    st.success("Completed bookings cleared!")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"Error clearing bookings: {e}")
+    
     conn.close()
     
     if not bookings:
@@ -1383,7 +1428,6 @@ def my_bookings_page():
     
     for booking in bookings:
         # Unpack booking details
-        # Adjust the unpacking to match the actual columns in your database
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, 
@@ -1403,8 +1447,14 @@ def my_bookings_page():
             # Car details
             st.subheader(f"{model} ({year})")
             
-            # Status display
-            st.markdown(f"### Booking Status: {booking_status.upper()}")
+            # Status display with color coding
+            status_colors = {
+                'pending': 'yellow',
+                'confirmed': 'green',
+                'rejected': 'red'
+            }
+            status_color = status_colors.get(booking_status.lower(), 'blue')
+            st.markdown(f"### Booking Status: <span style='color: {status_color};'>{booking_status.upper()}</span>", unsafe_allow_html=True)
             
             # Booking details
             col1, col2 = st.columns(2)
@@ -1459,8 +1509,10 @@ def my_bookings_page():
 def owner_bookings_page():
     st.markdown("<h1>Bookings for My Cars</h1>", unsafe_allow_html=True)
     
-    if st.button('← Back to Browse', key='owner_bookings_back'):
-        st.session_state.current_page = 'browse_cars'
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button('← Back to Browse', key='owner_bookings_back'):
+            st.session_state.current_page = 'browse_cars'
     
     # Connect to database
     conn = sqlite3.connect('car_rental.db')
@@ -1477,6 +1529,28 @@ def owner_bookings_page():
     ''', (st.session_state.user_email,))
     
     bookings = c.fetchall()
+    
+    # Clear bookings functionality
+    with col2:
+        # Only allow clearing if there are non-pending bookings
+        completed_bookings = [b for b in bookings if b[11] != 'pending']
+        if completed_bookings:
+            if st.button('🗑️ Clear Completed'):
+                try:
+                    # Delete completed bookings
+                    c.execute('''
+                        DELETE FROM bookings 
+                        WHERE car_id IN (
+                            SELECT id FROM car_listings 
+                            WHERE owner_email = ?
+                        ) AND booking_status != 'pending'
+                    ''', (st.session_state.user_email,))
+                    conn.commit()
+                    st.success("Completed bookings cleared!")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"Error clearing bookings: {e}")
+    
     conn.close()
     
     if not bookings:
@@ -1487,24 +1561,31 @@ def owner_bookings_page():
         # Unpack booking details
         (booking_id, renter_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
-         booking_status, created_at, model, year, booking_renter_email, image_data) = booking
+         booking_status, created_at, 
+         insurance_price, driver_price, delivery_price, vip_service_price,
+         model, year, booking_renter_email, image_data) = booking
         
         # Create a container for each booking
         with st.container():
             # Display car image if available
             if image_data:
-                st.image(f"data:image/jpeg;base64,{image_data}", use_container_width=True)
+                st.image(
+                    f"data:image/jpeg;base64,{image_data}", 
+                    use_container_width=True, 
+                    caption=f"{model} ({year})"
+                )
             
             # Car and Booking Details
             st.subheader(f"{model} ({year})")
             
-            # Status display
+            # Status display with color coding
             status_colors = {
                 'pending': 'yellow',
                 'confirmed': 'green',
                 'rejected': 'red'
             }
-            st.markdown(f"### Booking Status: {booking_status.upper()}")
+            status_color = status_colors.get(booking_status.lower(), 'blue')
+            st.markdown(f"### Booking Status: <span style='color: {status_color};'>{booking_status.upper()}</span>", unsafe_allow_html=True)
             
             # Booking details
             col1, col2 = st.columns(2)
@@ -1517,58 +1598,76 @@ def owner_bookings_page():
                 st.write(f"**Return Date:** {return_date}")
                 st.write(f"**Total Price:** {format_currency(total_price)}")
             
+            # Price Breakdown
+            st.subheader("Price Breakdown")
+            col1, col2 = st.columns(2)
+            with col1:
+                # Calculate base rental by subtracting additional services
+                base_price = total_price - (insurance_price + driver_price + delivery_price + vip_service_price)
+                st.write(f"Base Rental: {format_currency(base_price)}")
+                
+                if insurance:
+                    st.write(f"Insurance: {format_currency(insurance_price)}")
+                if driver:
+                    st.write(f"Driver: {format_currency(driver_price)}")
+            with col2:
+                if delivery:
+                    st.write(f"Delivery: {format_currency(delivery_price)}")
+                if vip_service:
+                    st.write(f"VIP Service: {format_currency(vip_service_price)}")
+            
             # Additional Services
             st.subheader("Additional Services")
             services = []
             if insurance:
-                services.append("Insurance")
+                services.append(("Insurance", insurance_price))
             if driver:
-                services.append("Driver")
+                services.append(("Driver", driver_price))
             if delivery:
-                services.append("Delivery")
+                services.append(("Delivery", delivery_price))
             if vip_service:
-                services.append("VIP Service")
+                services.append(("VIP Service", vip_service_price))
             
             if services:
-                for service in services:
-                    st.info(service)
+                for service, price in services:
+                    st.info(f"{service}: {format_currency(price)}")
             else:
                 st.info("No additional services selected")
             
-            # Approval buttons
-            col1, col2 = st.columns(2)
-            with col1:
-                approve = st.button("Approve Booking", key=f"approve_{booking_id}")
-            with col2:
-                reject = st.button("Reject Booking", key=f"reject_{booking_id}")
-            
-            if approve or reject:
-                new_status = 'confirmed' if approve else 'rejected'
+            # Approval buttons (only for pending bookings)
+            if booking_status.lower() == 'pending':
+                col1, col2 = st.columns(2)
+                with col1:
+                    approve = st.button("Approve Booking", key=f"approve_{booking_id}")
+                with col2:
+                    reject = st.button("Reject Booking", key=f"reject_{booking_id}")
                 
-                # Update booking status
-                conn = sqlite3.connect('car_rental.db')
-                c = conn.cursor()
-                c.execute('''
-                    UPDATE bookings 
-                    SET booking_status = ? 
-                    WHERE id = ?
-                ''', (new_status, booking_id))
-                
-                # Create notification for renter
-                create_notification(
-                    renter_email,
-                    f"Your booking for {model} has been {new_status}.",
-                    f'booking_{new_status}'
-                )
-                
-                conn.commit()
-                conn.close()
-                
-                st.success(f"Booking {new_status}")
-                st.experimental_rerun()
+                if approve or reject:
+                    new_status = 'confirmed' if approve else 'rejected'
+                    
+                    # Update booking status
+                    conn = sqlite3.connect('car_rental.db')
+                    c = conn.cursor()
+                    c.execute('''
+                        UPDATE bookings 
+                        SET booking_status = ? 
+                        WHERE id = ?
+                    ''', (new_status, booking_id))
+                    
+                    # Create notification for renter
+                    create_notification(
+                        renter_email,
+                        f"Your booking for {model} has been {new_status}.",
+                        f'booking_{new_status}'
+                    )
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    st.success(f"Booking {new_status}")
+                    st.experimental_rerun()
             
             st.markdown("---")
-
 def show_approved_listings():
     st.subheader("Approved Listings")
     show_listings_by_status('approved')
