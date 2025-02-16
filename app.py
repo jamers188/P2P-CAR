@@ -1328,14 +1328,14 @@ def my_bookings_page():
             st.subheader(f"{model} ({year})")
             
             # Status badge
-            status_color = {
-                'pending': 'warning',
-                'confirmed': 'success',
-                'rejected': 'error'
+            status_colors = {
+                'pending': 'yellow',
+                'confirmed': 'green',
+                'rejected': 'red'
             }
-            st.metric(label="Booking Status", value=booking_status.upper(), 
-                      help="Current status of your booking", 
-                      delta_color=status_color.get(booking_status.lower(), 'normal'))
+            status_color = status_colors.get(booking_status.lower(), 'blue')
+            st.markdown(f"### Booking Status: {booking_status.upper()}", 
+                        help="Current status of your booking")
             
             # Booking details
             col1, col2 = st.columns(2)
@@ -1362,12 +1362,12 @@ def my_bookings_page():
             
             if services:
                 for service in services:
-                    st.success(service)
+                    st.info(service)
             else:
                 st.info("No additional services selected")
             
             st.markdown("---")
-
+            
 def owner_bookings_page():
     st.markdown("<h1>Bookings for My Cars</h1>", unsafe_allow_html=True)
     
