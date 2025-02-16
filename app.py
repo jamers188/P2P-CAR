@@ -291,8 +291,6 @@ cars_data = {
     ]
 }
 
-# Initialize database when the module is loaded
-init_db()
 def setup_database():
     """Ensure database is properly initialized"""
     # Create database and tables
