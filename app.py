@@ -1178,7 +1178,110 @@ def show_car_details(car):
         st.session_state.current_page = 'book_car'
         st.rerun()
 
-
+def book_car_page():
+    if st.button('← Back to Car Details'):
+        st.session_state.current_page = 'car_details'
+        st.rerun()
+    
+    # Check if a car is selected
+    if not st.session_state.selected_car:
+        st.error("No car selected")
+        st.session_state.current_page = 'browse_cars'
+        st.rerun()
+        return
+    
+    car = st.session_state.selected_car
+    
+    st.markdown(f"<h1>Book {car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
+    
+    # Booking form
+    with st.form("booking_form"):
+        st.markdown("### Booking Details")
+        
+        # Date selection
+        col1, col2 = st.columns(2)
+        with col1:
+            pickup_date = st.date_input("Pickup Date", min_value=datetime.now().date())
+        with col2:
+            return_date = st.date_input("Return Date", min_value=pickup_date)
+        
+        # Location
+        location = st.selectbox("Pickup Location", get_location_options())
+        
+        # Additional Services
+        st.markdown("### Additional Services")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            insurance = st.checkbox("Insurance")
+        with col2:
+            driver = st.checkbox("Driver")
+        with col3:
+            delivery = st.checkbox("Delivery")
+        
+        vip_service = st.checkbox("VIP Service")
+        
+        # Calculate total price
+        rental_days = (return_date - pickup_date).days + 1
+        base_price = car['price'] * rental_days
+        
+        # Additional service costs
+        insurance_cost = 50 * rental_days if insurance else 0
+        driver_cost = 100 * rental_days if driver else 0
+        delivery_cost = 200 if delivery else 0
+        vip_cost = 300 if vip_service else 0
+        
+        total_price = base_price + insurance_cost + driver_cost + delivery_cost + vip_cost
+        
+        st.markdown(f"### Total Cost: {format_currency(total_price)}")
+        
+        # Submit booking
+        submit = st.form_submit_button("Confirm Booking")
+        
+        if submit:
+            try:
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                
+                # Insert booking
+                c.execute('''
+                    INSERT INTO bookings 
+                    (user_email, car_id, pickup_date, return_date, location, 
+                    total_price, insurance, driver, delivery, vip_service)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    st.session_state.user_email, 
+                    car['id'], 
+                    pickup_date.strftime('%Y-%m-%d'), 
+                    return_date.strftime('%Y-%m-%d'), 
+                    location, 
+                    total_price, 
+                    insurance, 
+                    driver, 
+                    delivery, 
+                    vip_service
+                ))
+                
+                conn.commit()
+                
+                # Create notification
+                create_notification(
+                    st.session_state.user_email,
+                    f"Booking confirmed for {car['model']} from {pickup_date} to {return_date}",
+                    'booking_confirmed'
+                )
+                
+                st.success("Booking confirmed successfully!")
+                
+                # Reset selected car and move to browse cars
+                st.session_state.selected_car = None
+                st.session_state.current_page = 'browse_cars'
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"An error occurred while booking: {str(e)}")
+            finally:
+                if 'conn' in locals():
+                    conn.close()
 def show_approved_listings():
     st.subheader("Approved Listings")
     show_listings_by_status('approved')
@@ -1277,6 +1380,13 @@ def main():
         else:
             st.error("No car selected")
             st.session_state.current_page = 'browse_cars'
+
+    elif st.session_state.current_page == 'book_car':
+        if st.session_state.logged_in:
+            book_car_page()
+        else:
+            st.warning("Please log in to book a car")
+            st.session_state.current_page = 'login'
 
 if __name__ == '__main__':
     try:
