@@ -1809,14 +1809,29 @@ def main():
                 st.session_state.current_page = 'notifications'
             
             st.markdown("---")
-            
             if st.button("👋 Logout"):
+  
                 if os.path.exists(SESSION_FILE):
-                    os.remove(SESSION_FILE)  # Delete saved session
-                st.session_state.clear()  # Reset everything
-                st.session_state.current_page = 'welcome'  # Ensure proper redirection
+                    os.remove(SESSION_FILE)
+    
+    
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+    
+    
+                st.session_state.logged_in = False
+                st.session_state.user_email = None
+                st.session_state.current_page = "welcome"
+    
+ 
+                st.success("Logged out successfully! Redirecting...")
+    
+                # Short delay before rerunning to ensure proper state reset
+                import time
+                time.sleep(1)  
                 st.experimental_rerun()
 
+           
            
 
           
