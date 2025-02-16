@@ -146,11 +146,11 @@ if 'selected_car' not in st.session_state:
 
 def init_db():
     """Initialize database and create tables"""
-    
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-    
+        
+        # Users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -162,89 +162,100 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-    
-    # Bookings table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS bookings (
-            id INTEGER PRIMARY KEY,
-            user_email TEXT NOT NULL,
-            car_id INTEGER NOT NULL,
-            pickup_date TEXT NOT NULL,
-            return_date TEXT NOT NULL,
-            location TEXT NOT NULL,
-            total_price REAL NOT NULL,
-            insurance BOOLEAN,
-            driver BOOLEAN,
-            delivery BOOLEAN,
-            vip_service BOOLEAN,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users (email)
-        )
-    ''')
-    
-    # Car listings table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS car_listings (
-            id INTEGER PRIMARY KEY,
-            owner_email TEXT NOT NULL,
-            model TEXT NOT NULL,
-            year INTEGER NOT NULL,
-            price REAL NOT NULL,
-            location TEXT NOT NULL,
-            description TEXT,
-            category TEXT NOT NULL,
-            specs TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (owner_email) REFERENCES users (email)
-        )
-    ''')
-    
-    # Car listing images table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS listing_images (
-            id INTEGER PRIMARY KEY,
-            listing_id INTEGER NOT NULL,
-            image_data TEXT NOT NULL,
-            is_primary BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (listing_id) REFERENCES car_listings (id)
-        )
-    ''')
-    
-    # Admin reviews table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS admin_reviews (
-            id INTEGER PRIMARY KEY,
-            listing_id INTEGER NOT NULL,
-            admin_email TEXT NOT NULL,
-            comment TEXT,
-            status TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (listing_id) REFERENCES car_listings (id),
-            FOREIGN KEY (admin_email) REFERENCES users (email)
-        )
-    ''')
-    
-    # Notifications table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS notifications (
-            id INTEGER PRIMARY KEY,
-            user_email TEXT NOT NULL,
-            message TEXT NOT NULL,
-            type TEXT NOT NULL,
-            read BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users (email)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-
-# Initialize database
-init_db()
+        
+        # Bookings table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                car_id INTEGER NOT NULL,
+                pickup_date TEXT NOT NULL,
+                return_date TEXT NOT NULL,
+                location TEXT NOT NULL,
+                total_price REAL NOT NULL,
+                insurance BOOLEAN,
+                driver BOOLEAN,
+                delivery BOOLEAN,
+                vip_service BOOLEAN,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+        
+        # Car listings table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS car_listings (
+                id INTEGER PRIMARY KEY,
+                owner_email TEXT NOT NULL,
+                model TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                price REAL NOT NULL,
+                location TEXT NOT NULL,
+                description TEXT,
+                category TEXT NOT NULL,
+                specs TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (owner_email) REFERENCES users (email)
+            )
+        ''')
+        
+        # Car listing images table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS listing_images (
+                id INTEGER PRIMARY KEY,
+                listing_id INTEGER NOT NULL,
+                image_data TEXT NOT NULL,
+                is_primary BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (listing_id) REFERENCES car_listings (id)
+            )
+        ''')
+        
+        # Admin reviews table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS admin_reviews (
+                id INTEGER PRIMARY KEY,
+                listing_id INTEGER NOT NULL,
+                admin_email TEXT NOT NULL,
+                comment TEXT,
+                status TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (listing_id) REFERENCES car_listings (id),
+                FOREIGN KEY (admin_email) REFERENCES users (email)
+            )
+        ''')
+        
+        # Notifications table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL,
+                read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+        
+        # Create indexes for better performance
+        c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
+        
+        conn.commit()
+        print("Database initialized successfully")
+        
+    except sqlite3.Error as e:
+        print(f"An error occurred while initializing the database: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
 
 # Sample car data for featured listings
 cars_data = {
@@ -280,15 +291,8 @@ cars_data = {
     ]
 }
 
-
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-    finally:
-        if conn:
-            conn.close()
-
-
+# Initialize database when the module is loaded
+init_db()
 def setup_database():
     """Ensure database is properly initialized"""
     # Create database and tables
