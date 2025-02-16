@@ -704,7 +704,7 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
                         'year': car[3],
                         'price': car[4],
                         'location': car[5],
-                        'specs': json.loads(car[8]),
+                        'specs': car[8],  # Keep it as is, let show_car_details handle parsing
                         'image': car[11],
                         'owner_email': car[1]
                     }
@@ -1148,13 +1148,18 @@ def show_car_details(car):
         st.markdown("</div>", unsafe_allow_html=True)
     
     # Car details
-    specs = json.loads(car['specs'])
+    # Use json.loads with error handling
+    try:
+        specs = json.loads(car['specs']) if isinstance(car['specs'], str) else car['specs']
+    except json.JSONDecodeError:
+        specs = {}
+    
     st.markdown(f"""
         <div style='background-color: white; padding: 1rem; border-radius: 10px;'>
             <h3>Car Details</h3>
             <p><strong>Price:</strong> {format_currency(car['price'])}/day</p>
             <p><strong>Location:</strong> {car['location']}</p>
-            <p><strong>Engine:</strong> {specs['engine']}</p>
+            <p><strong>Engine:</strong> {specs.get('engine', 'N/A')}</p>
             <p><strong>Mileage:</strong> {specs.get('mileage', 'N/A')} km</p>
             <p><strong>Transmission:</strong> {specs.get('transmission', 'N/A')}</p>
         </div>
@@ -1164,7 +1169,6 @@ def show_car_details(car):
     if st.button('Book Now'):
         st.session_state.current_page = 'book_car'
         st.rerun()
-
 
 
 
