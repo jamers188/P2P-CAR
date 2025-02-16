@@ -613,15 +613,22 @@ def login_page():
         password = st.text_input('Password', type='password')
 
 
-    
         if st.button('Login', key='login_submit'):
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.current_page = "browse_cars"
-                save_session(email, "browse_cars")  # Ensure session saves
-                st.experimental_rerun()
+                st.session_state.current_page = 'browse_cars'
 
+        
+                save_session(email, 'browse_cars')
+
+     
+                st.success('Login successful! Redirecting...')
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials. Please try again.")
+
+       
 
                 # Get user role
                 role = get_user_role(email)
@@ -1809,31 +1816,22 @@ def main():
                 st.session_state.current_page = 'notifications'
             
             st.markdown("---")
+
+
+
             if st.button("👋 Logout"):
-  
+
                 if os.path.exists(SESSION_FILE):
                     os.remove(SESSION_FILE)
-    
-    
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-    
-    
+
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = "welcome"
-    
- 
-                st.success("Logged out successfully! Redirecting...")
-    
-                # Short delay before rerunning to ensure proper state reset
-                import time
-                time.sleep(1)  
+                st.success("Logged out successfully!")
                 st.experimental_rerun()
 
            
-           
-
+             
           
     # Page routing
     if not st.session_state.logged_in:
