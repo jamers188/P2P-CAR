@@ -611,38 +611,26 @@ def login_page():
     with col2:
         email = st.text_input('Email')
         password = st.text_input('Password', type='password')
-
-
+        
         if st.button('Login', key='login_submit'):
             if verify_user(email, password):
+                # Get user role
+                role = get_user_role(email)
+                
+                # Set login state
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.current_page = 'browse_cars'
-
-        
-                save_session(email, 'browse_cars')
-
-     
-                st.success('Login successful! Redirecting...')
-                st.experimental_rerun()
-            else:
-                st.error("Invalid credentials. Please try again.")
-
-       
-
-                 # Get user role
-                role = get_user_role(email)
-            
+                
+                # Determine next page based on role
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
                 else:
                     st.session_state.current_page = 'browse_cars'
+                
                 st.success('Login successful!')
-                st.experimental_rerun()  # This will restart the app in the new page
+                st.experimental_rerun()
             else:
-                st.error('Invalid credentials')
-
-        
+                st.error("Invalid credentials. Please try again.")
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
