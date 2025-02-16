@@ -1809,13 +1809,16 @@ def main():
             
             st.markdown("---")
             
-            # Logout button
+            
             if st.button("👋 Logout"):
+                if os.path.exists(SESSION_FILE):
+                    os.remove(SESSION_FILE)  # Delete saved session
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = 'welcome'
                 st.experimental_rerun()
-    
+
+          
     # Page routing
     if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup']:
         st.session_state.current_page = 'welcome'
