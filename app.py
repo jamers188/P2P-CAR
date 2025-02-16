@@ -19,11 +19,18 @@ def save_session(email, page):
         json.dump(session_data, f)
 
 def load_session():
-    """Load session from a file if it exists."""
+    """Load session from a file and provide default values if missing."""
     if os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, "r") as f:
-            return json.load(f)
-    return None
+            session_data = json.load(f)
+        return {
+            "logged_in": session_data.get("logged_in", False),
+            "user_email": session_data.get("user_email", None),
+            "current_page": session_data.get("current_page", "browse_cars")  # Default page
+        }
+    return {"logged_in": False, "user_email": None, "current_page": "welcome"}
+
+
 
 
 # Page config and custom CSS
@@ -188,14 +195,11 @@ st.markdown("""
 
 # Load previous session if it exists
 session_data = load_session()
-if session_data:
-    st.session_state.logged_in = session_data["logged_in"]
-    st.session_state.user_email = session_data["user_email"]
-    st.session_state.current_page = session_data["current_page"]
-else:
-    st.session_state.logged_in = False
-    st.session_state.user_email = None
-    st.session_state.current_page = 'welcome'
+
+st.session_state.logged_in = session_data["logged_in"]
+st.session_state.user_email = session_data["user_email"]
+st.session_state.current_page = session_data["current_page"]
+
 
 # Database setup
 def setup_database():
@@ -614,9 +618,10 @@ def login_page():
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.current_page = 'browse_cars'  # Redirect after login
-                save_session(email, 'browse_cars')  # Save session to file
+                st.session_state.current_page = "browse_cars"
+                save_session(email, "browse_cars")  # Ensure session saves
                 st.experimental_rerun()
+
 
                 # Get user role
                 role = get_user_role(email)
@@ -1805,14 +1810,14 @@ def main():
             
             st.markdown("---")
             
-            
             if st.button("👋 Logout"):
                 if os.path.exists(SESSION_FILE):
                     os.remove(SESSION_FILE)  # Delete saved session
-                st.session_state.logged_in = False
-                st.session_state.user_email = None
-                st.session_state.current_page = 'welcome'
+                st.session_state.clear()  # Reset everything
+                st.session_state.current_page = 'welcome'  # Ensure proper redirection
                 st.experimental_rerun()
+
+           
 
           
     # Page routing
