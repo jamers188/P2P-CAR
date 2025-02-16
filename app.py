@@ -214,7 +214,7 @@ def setup_database():
                 driver BOOLEAN,
                 delivery BOOLEAN,
                 vip_service BOOLEAN,
-                    booking_status TEXT DEFAULT 'pending',
+                booking_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 insurance_price REAL DEFAULT 0,
                 driver_price REAL DEFAULT 0,
