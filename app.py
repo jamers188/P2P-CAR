@@ -247,42 +247,36 @@ def verify_user(email, password):
     c.execute('SELECT password FROM users WHERE email = ?', (email,))
     result = c.fetchone()
     conn.close()
-    if result and result[0] == hash_password(password):
+
+    if result and result[0] == hash_password(password):  # Hashing before comparison
         return True
     return False
 
-# Create admin user if not exists
-def create_admin_user():
-    """Ensure the admin user exists in the database."""
-    try:
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
-        
-        # Ensure database is initialized
-        init_db()
-        
-        # Check if admin exists
-        c.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'")
-        if c.fetchone()[0] == 0:
-            print("⚠️ Users table does not exist. Initializing database...")
-            init_db()
 
-        c.execute('SELECT * FROM users WHERE email = ? AND role = ?', ('admin@luxuryrentals.com', 'admin'))
-        if not c.fetchone():
-            # Insert admin user
-            create_user(
-                full_name='Admin User',
-                email='admin@luxuryrentals.com',
-                phone='+971500000000',
-                password='admin123',  # Change this in production
-                role='admin'
-            )
-            print("✅ Admin user created successfully.")
-        
-    except sqlite3.Error as e:
-        print(f"Database Error: {e}")
-    finally:
-        conn.close()
+# Create admin user if not exists
+def create_admin():
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+
+    admin_email = "admin@luxuryrentals.com"
+    admin_password = "admin123"  # Change in production
+    hashed_password = hash_password(admin_password)
+
+    try:
+        c.execute('''
+            INSERT INTO users (full_name, email, phone, password, role)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('Admin User', admin_email, '+971500000000', hashed_password, 'admin'))
+
+        conn.commit()
+        st.success("✅ Admin user created successfully!")
+    except sqlite3.IntegrityError:
+        st.warning("⚠️ Admin user already exists.")
+    
+    conn.close()
+
+if st.button("Create Admin User"):
+    create_admin()
 
 # Notification functions
 def create_notification(user_email, message, type):
