@@ -1,71 +1,4 @@
-if st.session_state.current_page == 'welcome':
-        welcome_page()
-    elif st.session_state.current_page == 'login':
-        login_page()
-    elif st.session_state.current_page == 'signup':
-        signup_page()
-    elif st.session_state.current_page == 'reset_password':
-        reset_password_page()
-    elif st.session_state.current_page == 'browse_cars':
-        if st.session_state.logged_in:
-            browse_cars_page()
-        else:
-            st.warning('Please log in first')
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'book_car':
-        if st.session_state.logged_in:
-            book_car_page()
-        else:
-            st.warning('Please log in first')
-            st.session_state.current_page = 'login'
-    elif st.session_state.current_page == 'confirmation':
-        confirmation_page()
-    elif st.session_state.current_page == 'list_your_car':
-        list_your_car_page()
-    elif st.session_state.current_page == 'my_listings':
-        my_listings_page()
-    elif st.session_state.current_page == 'view_listings':
-        view_listings_page()
-    elif st.session_state.current_page == 'notifications':
-        notifications_page()
-
-def book_car_page():
-    if st.button('← Back to Browse', key='book_back'):
-        st.session_state.current_page = 'browse_cars'
-    
-    st.markdown("<h1>Book Your Car</h1>", unsafe_allow_html=True)
-    
-    car = st.session_state.selected_car
-    
-    # Display car details
-    col1, col2 = st.columns(2)
-    with col1:
-        if 'is_p2p' in car and car['is_p2p']:
-            st.image(car['image'].split(',')[1], use_column_width=True)
-        else:
-            st.image(car['image'], use_column_width=True)
-    with col2:
-        st.markdown(f"""
-            <div class='car-card'>
-                <h2 style='color: #4B0082;'>{car['model']}</h2>
-                <p style='font-size: 1.5rem; color: #666;'>AED {car['price']}/day</p>
-                <p style='color: #666;'>{car['location']}</p>
-                <div style='margin-top: 1rem;'>
-                    <p>🏎 {car['specs']['engine']}</p>
-                    <p>⚡ {car['specs'].get('power', car['specs'].get('mileage', ''))} 
-                       {' hp' if 'power' in car['specs'] else ' km'}</p>
-                    <p>🚀 {car['specs'].get('acceleration', car['specs'].get('transmission', ''))}</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Booking details section
-    st.markdown("<h3 style='color: #4B0082; margin-top: 2rem;'>Booking Details</h3>", unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        pickup_date = st.date_input('Pick-up Date', min_value=datetime.today())
-        pickup_time = st.time_input('Pick-up Time')import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
@@ -476,7 +409,268 @@ def browse_cars_page():
         if st.button('← Back', key='browse_back'):
             st.session_state.current_page = 'welcome'
     with col3:
+        if st.session_state.current_page == 'welcome':
+        welcome_page()
+    elif st.session_state.current_page == 'login':
+        login_page()
+    elif st.session_state.current_page == 'signup':
+        signup_page()
+    elif st.session_state.current_page == 'reset_password':
+        reset_password_page()
+    elif st.session_state.current_page == 'browse_cars':
         if st.session_state.logged_in:
+            browse_cars_page()
+        else:
+            st.warning('Please log in first')
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'book_car':
+        if st.session_state.logged_in:
+            book_car_page()
+        else:
+            st.warning('Please log in first')
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'confirmation':
+        confirmation_page()
+    elif st.session_state.current_page == 'list_your_car':
+        list_your_car_page()
+    elif st.session_state.current_page == 'my_listings':
+        my_listings_page()
+    elif st.session_state.current_page == 'view_listings':
+        view_listings_page()
+    elif st.session_state.current_page == 'notifications':
+        notifications_page()
+
+def book_car_page():
+    if st.button('← Back to Browse', key='book_back'):
+        st.session_state.current_page = 'browse_cars'
+    
+    st.markdown("<h1>Book Your Car</h1>", unsafe_allow_html=True)
+    
+    car = st.session_state.selected_car
+    
+    # Display car details
+    col1, col2 = st.columns(2)
+    with col1:
+        if 'is_p2p' in car and car['is_p2p']:
+            st.image(car['image'].split(',')[1], use_column_width=True)
+        else:
+            st.image(car['image'], use_column_width=True)
+    with col2:
+        st.markdown(f"""
+            <div class='car-card'>
+                <h2 style='color: #4B0082;'>{car['model']}</h2>
+                <p style='font-size: 1.5rem; color: #666;'>AED {car['price']}/day</p>
+                <p style='color: #666;'>{car['location']}</p>
+                <div style='margin-top: 1rem;'>
+                    <p>🏎 {car['specs']['engine']}</p>
+                    <p>⚡ {car['specs'].get('power', car['specs'].get('mileage', ''))} 
+                       {' hp' if 'power' in car['specs'] else ' km'}</p>
+                    <p>🚀 {car['specs'].get('acceleration', car['specs'].get('transmission', ''))}</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Booking details section
+    st.markdown("<h3 style='color: #4B0082; margin-top: 2rem;'>Booking Details</h3>", unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        pickup_date = st.date_input('Pick-up Date', min_value=datetime.today())
+        pickup_time = st.time_input('Pick-up Time')
+    with col2:
+        return_date = st.date_input('Return Date', min_value=pickup_date)
+        return_time = st.time_input('Return Time')
+    
+    # Additional details
+    st.markdown("<div style='background-color: #f8f9fa; padding: 1.5rem; border-radius: 15px; margin-top: 1rem;'>", unsafe_allow_html=True)
+    location = st.selectbox('Pickup Location', ['Dubai Marina', 'Palm Jumeirah', 'Downtown Dubai'])
+    payment_method = st.selectbox('Payment Method', ['Credit Card', 'Debit Card'])
+    
+    # Additional services
+    st.markdown("<h4 style='color: #4B0082; margin-top: 1rem;'>Additional Services</h4>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        insurance = st.checkbox('Full Insurance (+AED 150/day)', help='Comprehensive insurance coverage')
+        driver = st.checkbox('Professional Driver (+AED 500/day)', help='Experienced chauffeur service')
+    with col2:
+        delivery = st.checkbox('Car Delivery (+AED 200)', help='Delivery to your location')
+        vip_service = st.checkbox('VIP Service (+AED 300)', help='Priority support and exclusive benefits')
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Price calculation
+    days = (return_date - pickup_date).days + 1
+    base_price = days * car['price']
+    additional_costs = 0
+    
+    if insurance:
+        additional_costs += 150 * days
+    if driver:
+        additional_costs += 500 * days
+    if delivery:
+        additional_costs += 200
+    if vip_service:
+        additional_costs += 300
+    
+    total_price = base_price + additional_costs
+    
+    # Price breakdown
+    st.markdown(f"""
+        <div style='background-color: #4B0082; color: white; padding: 1.5rem; border-radius: 15px; margin-top: 1rem;'>
+            <h3>Price Breakdown</h3>
+            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;'>
+                <div>
+                    <p>Base Rental ({days} days)</p>
+                    <p>Full Insurance</p>
+                    <p>Professional Driver</p>
+                    <p>Car Delivery</p>
+                    <p>VIP Service</p>
+                </div>
+                <div style='text-align: right;'>
+                    <p>AED {base_price}</p>
+                    <p>AED {150 * days if insurance else 0}</p>
+                    <p>AED {500 * days if driver else 0}</p>
+                    <p>AED {200 if delivery else 0}</p>
+                    <p>AED {300 if vip_service else 0}</p>
+                </div>
+            </div>
+            <hr style='border-color: white; margin: 1rem 0;'>
+            <h2 style='text-align: right;'>Total: AED {total_price}</h2>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Payment section
+    if st.button('Confirm Booking', key='confirm_booking'):
+        # Save booking to database
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        try:
+            c.execute('''
+                INSERT INTO bookings 
+                (user_email, car_id, pickup_date, return_date, location, 
+                total_price, insurance, driver, delivery, vip_service)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                st.session_state.user_email, car['id'], 
+                f"{pickup_date} {pickup_time}", f"{return_date} {return_time}",
+                location, total_price, insurance, driver, delivery, vip_service
+            ))
+            conn.commit()
+            
+            # Create notification for booking
+            create_notification(
+                st.session_state.user_email,
+                f"Booking confirmed for {car['model']}. Total: AED {total_price}",
+                'booking_confirmed'
+            )
+            
+            # If it's a P2P booking, notify the owner
+            if 'is_p2p' in car and car['is_p2p']:
+                create_notification(
+                    car['owner_email'],
+                    f"New booking received for your {car['model']}",
+                    'p2p_booking_received'
+                )
+            
+            # Store booking details in session state
+            st.session_state.booking_details = {
+                'car': car['model'],
+                'pickup': f"{pickup_date} {pickup_time}",
+                'return': f"{return_date} {return_time}",
+                'location': location,
+                'total': total_price,
+                'additional_services': {
+                    'insurance': insurance,
+                    'driver': driver,
+                    'delivery': delivery,
+                    'vip_service': vip_service
+                }
+            }
+            st.session_state.current_page = 'confirmation'
+            
+        except Exception as e:
+            st.error(f"An error occurred while processing your booking. Please try again.")
+        finally:
+            conn.close()
+
+def confirmation_page():
+    if st.button('← Back to Browse', key='confirmation_back'):
+        st.session_state.current_page = 'browse_cars'
+    
+    st.markdown("""
+        <div style='text-align: center; padding: 2rem;'>
+            <h1>🎉 Booking Confirmed!</h1>
+            <p style='color: #4B0082; font-size: 1.2rem;'>Your luxury car experience awaits</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    details = st.session_state.booking_details
+    
+    # Booking summary card
+    st.markdown(f"""
+        <div style='background-color: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 2rem 0;'>
+            <h2 style='color: #4B0082; margin-bottom: 1rem;'>Booking Summary</h2>
+            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;'>
+                <div>
+                    <p style='color: #666;'><strong>Car:</strong> {details['car']}</p>
+                    <p style='color: #666;'><strong>Pick-up:</strong> {details['pickup']}</p>
+                    <p style='color: #666;'><strong>Location:</strong> {details['location']}</p>
+                </div>
+                <div>
+                    <p style='color: #666;'><strong>Return:</strong> {details['return']}</p>
+                    <p style='color: #666;'><strong>Additional Services:</strong></p>
+                    <ul style='color: #666;'>
+                        {f"<li>Full Insurance</li>" if details['additional_services']['insurance'] else ""}
+                        {f"<li>Professional Driver</li>" if details['additional_services']['driver'] else ""}
+                        {f"<li>Car Delivery</li>" if details['additional_services']['delivery'] else ""}
+                        {f"<li>VIP Service</li>" if details['additional_services']['vip_service'] else ""}
+                    </ul>
+                </div>
+            </div>
+            <h3 style='color: #4B0082; margin-top: 1rem; text-align: right;'>Total: AED {details['total']}</h3>
+        </div>
+        
+        <div style='background-color: #E8F5E9; padding: 1rem; border-radius: 15px; margin-top: 1rem;'>
+            <p style='color: #2E7D32;'>📧 A confirmation email has been sent to your registered email address.</p>
+            <p style='color: #2E7D32;'>📞 Our customer service team will contact you shortly to confirm the details.</p>
+            <p style='color: #2E7D32;'>🎁 Your VIP welcome package will be prepared for your arrival.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Download booking details button
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button('Download Booking Details', key='download'):
+            booking_info = f"""
+                Booking Details
+                
+                Car: {details['car']}
+                Pick-up: {details['pickup']}
+                Return: {details['return']}
+                Location: {details['location']}
+                
+                Additional Services:
+                - Insurance: {'Yes' if details['additional_services']['insurance'] else 'No'}
+                - Professional Driver: {'Yes' if details['additional_services']['driver'] else 'No'}
+                - Car Delivery: {'Yes' if details['additional_services']['delivery'] else 'No'}
+                - VIP Service: {'Yes' if details['additional_services']['vip_service'] else 'No'}
+                
+                Total: AED {details['total']}
+            """
+            
+            st.download_button(
+                label="Download PDF",
+                data=booking_info,
+                file_name="booking_details.txt",
+                mime="text/plain"
+            )
+        
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        
+        if st.button('Return to Home', key='return_home'):
+            st.session_state.current_page = 'browse_cars'
+
+if __name__ == '__main__':
+    main()_state.logged_in:
             unread_count = get_unread_notifications_count(st.session_state.user_email)
             if unread_count > 0:
                 if st.button(f'🔔 ({unread_count})', key='notifications'):
@@ -933,3 +1127,5 @@ if __name__ == '__main__':
     
     # Run the main application
     main()
+
+
