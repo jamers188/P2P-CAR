@@ -235,7 +235,7 @@ def setup_database():
             )
         ''')
 
-        # Create bookings table
+        # Create bookings table - Note the status column name change
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -249,7 +249,7 @@ def setup_database():
                 driver BOOLEAN,
                 delivery BOOLEAN,
                 vip_service BOOLEAN,
-                booking_status TEXT DEFAULT 'pending',
+                status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
@@ -282,11 +282,11 @@ def setup_database():
             )
         ''')
 
-        # Create indexes for better performance
+        # Create indexes with corrected column names
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
-        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)')  # Changed from booking_status
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
         # Ensure admin user exists
@@ -314,7 +314,6 @@ def setup_database():
     finally:
         if conn:
             conn.close()
-
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
