@@ -189,10 +189,14 @@ def init_db():
 def setup_database():
     """Initialize all database tables and admin user"""
     try:
+        # First drop the existing database file to start fresh
+        if os.path.exists('car_rental.db'):
+            os.remove('car_rental.db')
+            
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
 
-        # Create users table first (as other tables depend on it)
+        # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -217,7 +221,7 @@ def setup_database():
                 description TEXT,
                 category TEXT NOT NULL,
                 specs TEXT NOT NULL,
-                status TEXT DEFAULT 'pending',
+                listing_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (owner_email) REFERENCES users (email)
             )
@@ -235,7 +239,7 @@ def setup_database():
             )
         ''')
 
-        # Create bookings table - Note the status column name change
+        # Create bookings table
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -249,7 +253,7 @@ def setup_database():
                 driver BOOLEAN,
                 delivery BOOLEAN,
                 vip_service BOOLEAN,
-                status TEXT DEFAULT 'pending',
+                booking_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
@@ -275,21 +279,22 @@ def setup_database():
                 listing_id INTEGER NOT NULL,
                 admin_email TEXT NOT NULL,
                 comment TEXT,
-                status TEXT NOT NULL,
+                review_status TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (listing_id) REFERENCES car_listings (id),
                 FOREIGN KEY (admin_email) REFERENCES users (email)
             )
         ''')
 
-        # Create indexes with corrected column names
+        # Create indexes with consistent column names
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
-        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
-        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)')  # Changed from booking_status
+        c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_reviews_status ON admin_reviews(review_status)')
 
-        # Ensure admin user exists
+        # Create admin user
         c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
         admin_exists = c.fetchone()
         
@@ -310,11 +315,11 @@ def setup_database():
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
+        st.error(f"Database error: {e}")
         raise
     finally:
         if conn:
             conn.close()
-
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
