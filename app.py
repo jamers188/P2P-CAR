@@ -242,13 +242,19 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
+    # Default hardcoded admin credentials
+    if email == "admin@luxuryrentals.com" and password == "admin123":
+        return True
+
+    # Check in database for regular users
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     c.execute('SELECT password FROM users WHERE email = ?', (email,))
     result = c.fetchone()
     conn.close()
 
-    if result and result[0] == hash_password(password):  # Hashing before comparison
+    # Compare hashed password for normal users
+    if result and result[0] == hash_password(password):
         return True
     return False
 
