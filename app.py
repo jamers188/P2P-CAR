@@ -14,7 +14,11 @@ SESSION_FILE = "session.json"
 
 def save_session(email, page):
     """Save login session and current page to a file."""
-    session_data = {"logged_in": True, "user_email": email, "current_page": page}
+    session_data = {
+        "logged_in": True, 
+        "user_email": email, 
+        "current_page": page
+    }
     with open(SESSION_FILE, "w") as f:
         json.dump(session_data, f)
 
@@ -432,7 +436,7 @@ def verify_user(email, password):
         save_session(email)
         return True
     return False
-
+    
 def get_user_role(email):
     """Get user's role from database"""
     try:
@@ -613,6 +617,12 @@ def login_page():
         password = st.text_input('Password', type='password')
         
         if st.button('Login', key='login_submit'):
+            # Validate input fields
+            if not email or not password:
+                st.error("Please enter both email and password")
+                return
+            
+            # Verify user credentials
             if verify_user(email, password):
                 # Get user role
                 role = get_user_role(email)
@@ -620,6 +630,9 @@ def login_page():
                 # Set login state
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
+                
+                # Save session
+                save_session(email, 'browse_cars')
                 
                 # Determine next page based on role
                 if role == 'admin':
@@ -635,7 +648,7 @@ def login_page():
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
-
+            
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
