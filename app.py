@@ -9,6 +9,23 @@ import io
 import base64
 import json
 
+
+SESSION_FILE = "session.json"
+
+def save_session(email):
+    """Save login session to a file."""
+    session_data = {"logged_in": True, "user_email": email}
+    with open(SESSION_FILE, "w") as f:
+        json.dump(session_data, f)
+
+def load_session():
+    """Load session from a file if it exists."""
+    if os.path.exists(SESSION_FILE):
+        with open(SESSION_FILE, "r") as f:
+            return json.load(f)
+    return None
+
+
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
@@ -181,6 +198,11 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 'welcome'
 if 'selected_car' not in st.session_state:
     st.session_state.selected_car = None
+# Load previous session if it exists
+session_data = load_session()
+if session_data:
+    st.session_state.logged_in = session_data["logged_in"]
+    st.session_state.user_email = session_data["user_email"]
 
 # Database setup
 def setup_database():
@@ -398,26 +420,21 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials"""
-    try:
-        # Special case for admin
-        if email == "admin@luxuryrentals.com" and password == "admin123":
-            return True
-            
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
-        c.execute('SELECT password FROM users WHERE email = ?', (email,))
-        result = c.fetchone()
-        
-        if result and result[0] == hash_password(password):
-            return True
-        return False
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-        return False
-    finally:
-        if 'conn' in locals():
-            conn.close()
+    """Verify user credentials and save session"""
+    if email == "admin@luxuryrentals.com" and password == "admin123":
+        save_session(email)
+        return True
+
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    c.execute('SELECT password FROM users WHERE email = ?', (email,))
+    result = c.fetchone()
+    conn.close()
+
+    if result and result[0] == hash_password(password):
+        save_session(email)
+        return True
+    return False
 
 def get_user_role(email):
     """Get user's role from database"""
