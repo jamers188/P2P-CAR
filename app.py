@@ -12,67 +12,95 @@ import json
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
-# Custom CSS
 st.markdown("""
     <style>
+        /* Root Variables for Theming */
+        :root {
+            --primary-color: #4B0082;
+            --secondary-color: #6A0DAD;
+            --background-color: #F4F4F8;
+            --text-color: #333;
+        }
+
+        /* Global Styles */
+        .stApp {
+            background-color: var(--background-color);
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Button Styling */
         .stButton>button {
             width: 100%;
             border-radius: 20px;
             height: 3em;
-            background-color: #4B0082;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             margin: 5px 0;
             transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .stButton>button:hover {
-            background-color: #6A0DAD;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
         
+        /* Layout */
         .css-1d391kg {
             padding: 2rem 1rem;
         }
         
+        /* Input Styling */
         input[type="text"], input[type="password"] {
             border-radius: 20px;
             padding: 10px 15px;
-            border: 2px solid #4B0082;
+            border: 2px solid var(--primary-color);
+            transition: all 0.3s ease;
         }
         
         .stTextInput>div>div>input:focus {
-            border-color: #6A0DAD;
-            box-shadow: 0 0 5px rgba(106,13,173,0.5);
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 10px rgba(106,13,173,0.2);
         }
         
+        /* Headings */
         h1 {
-            color: #4B0082;
+            color: var(--primary-color);
             text-align: center;
             padding: 1rem 0;
+            font-weight: 700;
+            letter-spacing: -1px;
         }
         
+        /* Card Styling */
         .car-card {
             background-color: white;
             border-radius: 15px;
             padding: 1rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             margin: 1rem 0;
             transition: all 0.3s ease;
+            border: 1px solid #e1e1e8;
         }
         
         .car-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
         }
         
+        /* Message Styling */
         .success-message {
             background-color: #E8F5E9;
             color: #2E7D32;
             padding: 1rem;
             border-radius: 10px;
             margin: 1rem 0;
+            border-left: 4px solid #2E7D32;
         }
         
         .error-message {
@@ -81,38 +109,46 @@ st.markdown("""
             padding: 1rem;
             border-radius: 10px;
             margin: 1rem 0;
+            border-left: 4px solid #C62828;
         }
         
+        /* Status Badge */
         .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 15px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
         }
         
         .status-badge.pending {
-            background-color: #FFF3CD;
-            color: #856404;
+            background-color: #FFC107;
+            color: #333;
         }
         
         .status-badge.approved {
-            background-color: #D4EDDA;
-            color: #155724;
+            background-color: #28a745;
+            color: white;
         }
         
         .status-badge.rejected {
-            background-color: #F8D7DA;
-            color: #721C24;
+            background-color: #dc3545;
+            color: white;
         }
         
+        /* Admin Review Card */
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             margin: 1.5rem 0;
+            border: 1px solid #e1e1e8;
         }
         
+        /* Image Gallery */
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -124,6 +160,7 @@ st.markdown("""
             width: 100%;
             border-radius: 10px;
             transition: transform 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
         
         .image-gallery img:hover {
