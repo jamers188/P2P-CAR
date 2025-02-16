@@ -196,6 +196,11 @@ def setup_database():
             )
         ''')
         # In setup_database() function, modify the bookings table creation
+
+        def setup_database():
+    # ... (previous code)
+    
+    # Modify the bookings table creation
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -209,15 +214,16 @@ def setup_database():
                 driver BOOLEAN,
                 delivery BOOLEAN,
                 vip_service BOOLEAN,
-                booking_status TEXT DEFAULT 'pending',
+                    booking_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                insurance_cost REAL DEFAULT 0,
-                driver_cost REAL DEFAULT 0,
-                delivery_cost REAL DEFAULT 0,
-                vip_service_cost REAL DEFAULT 0,
+                insurance_price REAL DEFAULT 0,
+                driver_price REAL DEFAULT 0,
+                delivery_price REAL DEFAULT 0,
+                vip_service_price REAL DEFAULT 0,
                 FOREIGN KEY (user_email) REFERENCES users (email)
             )
         ''')
+       
 
         # Create notifications table
         c.execute('''
@@ -1236,12 +1242,12 @@ def book_car_page():
         base_price = car['price'] * rental_days
         
         # Additional service costs
-        insurance_cost = service_prices['insurance'] * rental_days if insurance else 0
-        driver_cost = service_prices['driver'] * rental_days if driver else 0
-        delivery_cost = service_prices['delivery'] if delivery else 0
-        vip_cost = service_prices['vip_service'] if vip_service else 0
+        insurance_price = service_prices['insurance'] * rental_days if insurance else 0
+        driver_price = service_prices['driver'] * rental_days if driver else 0
+        delivery_price = service_prices['delivery'] if delivery else 0
+        vip_service_price = service_prices['vip_service'] if vip_service else 0
         
-        total_price = base_price + insurance_cost + driver_cost + delivery_cost + vip_cost
+        total_price = base_price + insurance_price + driver_price + delivery_price + vip_service_price
         
         # Display price breakdown
         st.markdown("### Price Breakdown")
@@ -1249,14 +1255,14 @@ def book_car_page():
         with col1:
             st.write(f"Base Rental ({rental_days} days): {format_currency(base_price)}")
             if insurance:
-                st.write(f"Insurance: {format_currency(insurance_cost)}")
+                st.write(f"Insurance: {format_currency(insurance_price)}")
             if driver:
-                st.write(f"Driver: {format_currency(driver_cost)}")
+                st.write(f"Driver: {format_currency(driver_price)}")
         with col2:
             if delivery:
-                st.write(f"Delivery: {format_currency(delivery_cost)}")
+                st.write(f"Delivery: {format_currency(delivery_price)}")
             if vip_service:
-                st.write(f"VIP Service: {format_currency(vip_cost)}")
+                st.write(f"VIP Service: {format_currency(vip_service_price)}")
         
         st.markdown(f"### Total Cost: {format_currency(total_price)}")
         
@@ -1273,7 +1279,7 @@ def book_car_page():
                     INSERT INTO bookings 
                     (user_email, car_id, pickup_date, return_date, location, 
                     total_price, insurance, driver, delivery, vip_service,
-                    insurance_cost, driver_cost, delivery_cost, vip_service_cost)
+                    insurance_price, driver_price, delivery_price, vip_service_price)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     st.session_state.user_email, 
@@ -1286,10 +1292,10 @@ def book_car_page():
                     driver, 
                     delivery, 
                     vip_service,
-                    insurance_cost,
-                    driver_cost,
-                    delivery_cost,
-                    vip_cost
+                    insurance_price,
+                    driver_price,
+                    delivery_price,
+                    vip_service_price
                 ))
                 
                 conn.commit()
@@ -1313,7 +1319,6 @@ def book_car_page():
             finally:
                 if 'conn' in locals():
                     conn.close()
-
 def my_bookings_page():
     st.markdown("<h1>My Bookings</h1>", unsafe_allow_html=True)
     
@@ -1333,6 +1338,7 @@ def my_bookings_page():
         WHERE b.user_email = ?
         ORDER BY b.created_at DESC
     ''', (st.session_state.user_email,))
+
     
     bookings = c.fetchall()
     conn.close()
@@ -1346,7 +1352,7 @@ def my_bookings_page():
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, owner_email, model, year, image_data,
-         insurance_cost, driver_cost, delivery_cost, vip_service_cost) = booking
+         insurance_price, driver_price, delivery_price, vip_service_price) = booking
         
         # Create a card-like container
         with st.container():
