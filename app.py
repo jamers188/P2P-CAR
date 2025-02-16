@@ -525,12 +525,12 @@ def show_pending_listings():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Get pending listings
+    # Updated query to use listing_status
     c.execute('''
         SELECT cl.*, u.full_name, u.email, u.phone
         FROM car_listings cl
         JOIN users u ON cl.owner_email = u.email
-        WHERE cl.status = 'pending'
+        WHERE cl.listing_status = 'pending'
         ORDER BY cl.created_at DESC
     ''')
     
@@ -556,7 +556,7 @@ def show_pending_listings():
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Display images in a grid
+                # Display images
                 if images:
                     st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
                     cols = st.columns(len(images))
@@ -581,17 +581,17 @@ def show_pending_listings():
                     if approve or reject:
                         status = 'approved' if approve else 'rejected'
                         
-                        # Update listing status
+                        # Update listing status - using listing_status
                         c.execute('''
                             UPDATE car_listings 
-                            SET status = ? 
+                            SET listing_status = ? 
                             WHERE id = ?
                         ''', (status, listing[0]))
                         
                         # Add admin review
                         c.execute('''
                             INSERT INTO admin_reviews 
-                            (listing_id, admin_email, comment, status)
+                            (listing_id, admin_email, comment, review_status)
                             VALUES (?, ?, ?, ?)
                         ''', (
                             listing[0],
@@ -612,7 +612,6 @@ def show_pending_listings():
                         st.rerun()
     
     conn.close()
-
 def show_approved_listings():
     st.subheader("Approved Listings")
     show_listings_by_status('approved')
@@ -625,12 +624,13 @@ def show_listings_by_status(status):
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
+    # Updated query to use listing_status
     c.execute('''
         SELECT cl.*, u.full_name, ar.comment, ar.created_at
         FROM car_listings cl
         JOIN users u ON cl.owner_email = u.email
         LEFT JOIN admin_reviews ar ON cl.id = ar.listing_id
-        WHERE cl.status = ?
+        WHERE cl.listing_status = ?
         ORDER BY cl.created_at DESC
     ''', (status,))
     
@@ -695,13 +695,11 @@ def browse_cars_page():
 def display_cars(search=""):
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
-    
-    # Get approved listings
     c.execute('''
         SELECT cl.*, li.image_data
         FROM car_listings cl
         LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
-        WHERE cl.status = 'approved'
+        WHERE cl.listing_status = 'approved'
         ORDER BY cl.created_at DESC
     ''')
     
