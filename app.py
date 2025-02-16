@@ -686,7 +686,7 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
                 specs = json.loads(car[8])  # Parse specs JSON
                 st.markdown(f"""
                     <div class='car-card'>
-                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; border-radius: 10px;'>
+                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>
                         <h3 style='color: #4B0082; margin: 1rem 0;'>{car[2]} ({car[3]})</h3>
                         <p style='color: #666;'>{format_currency(car[4])}/day</p>
                         <p style='color: #666;'>{car[5]}</p>
@@ -697,20 +697,20 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
-                
-                if st.button('Book Now', key=f"book_{car[0]}"):
+                if st.button('View Details', key=f"details_{car[0]}"):
                     st.session_state.selected_car = {
                         'id': car[0],
                         'model': car[2],
                         'year': car[3],
                         'price': car[4],
                         'location': car[5],
-                        'specs': specs,
+                        'specs': json.loads(car[8]),
                         'image': car[11],
                         'owner_email': car[1]
                     }
-                    st.session_state.current_page = 'book_car'
+                    st.session_state.current_page = 'car_details'
                     st.rerun()
+                 
     
     conn.close()
 
@@ -817,6 +817,7 @@ def list_your_car_page():
                     listing_id = c.lastrowid
                     
                     # Save images
+                    # Modify this part of the image saving logic
                     for idx, file in enumerate(uploaded_files):
                         image_data = save_uploaded_image(file)
                         if image_data:
@@ -824,7 +825,7 @@ def list_your_car_page():
                                 INSERT INTO listing_images 
                                 (listing_id, image_data, is_primary)
                                 VALUES (?, ?, ?)
-                            ''', (listing_id, image_data, idx == 0))
+                            ''', (listing_id, image_data, idx == 0))  # Only the first image is primary
                     
                     conn.commit()
                     
@@ -1123,6 +1124,49 @@ def show_listings_by_status(status):
                     st.markdown("</div>", unsafe_allow_html=True)
     
     conn.close()
+def show_car_details(car):
+    st.markdown(f"<h1>{car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
+    
+    # Fetch all images for this car
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    c.execute('SELECT image_data FROM listing_images WHERE listing_id = ?', (car['id'],))
+    images = c.fetchall()
+    conn.close()
+    
+    # Image gallery
+    if images:
+        st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
+        cols = st.columns(len(images))
+        for idx, (img_data,) in enumerate(images):
+            with cols[idx]:
+                st.image(
+                    f"data:image/jpeg;base64,{img_data}", 
+                    caption=f"Image {idx+1}",
+                    use_column_width=True
+                )
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Car details
+    specs = json.loads(car['specs'])
+    st.markdown(f"""
+        <div style='background-color: white; padding: 1rem; border-radius: 10px;'>
+            <h3>Car Details</h3>
+            <p><strong>Price:</strong> {format_currency(car['price'])}/day</p>
+            <p><strong>Location:</strong> {car['location']}</p>
+            <p><strong>Engine:</strong> {specs['engine']}</p>
+            <p><strong>Mileage:</strong> {specs.get('mileage', 'N/A')} km</p>
+            <p><strong>Transmission:</strong> {specs.get('transmission', 'N/A')}</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Booking button
+    if st.button('Book Now'):
+        st.session_state.current_page = 'book_car'
+        st.rerun()
+
+
+
 
 def show_approved_listings():
     st.subheader("Approved Listings")
@@ -1215,6 +1259,13 @@ def main():
         else:
             st.warning("Please log in to view notifications")
             st.session_state.current_page = 'login'
+
+    elif st.session_state.current_page == 'car_details':
+        if st.session_state.selected_car:
+            show_car_details(st.session_state.selected_car)
+        else:
+            st.error("No car selected")
+            st.session_state.current_page = 'browse_cars'
 
 if __name__ == '__main__':
     try:
