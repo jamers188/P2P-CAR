@@ -1401,42 +1401,58 @@ def owner_bookings_page():
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, model, year, booking_renter_email, image_data) = booking
         
-        with st.form(key=f"booking_approval_{booking_id}"):
-            st.markdown(f"""
-                <div class='car-card'>
-                    <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <h3 style='color: #4B0082;'>{model} ({year})</h3>
-                        <span class='status-badge {booking_status.lower()}'>
-                            {booking_status.upper()}
-                        </span>
-                    </div>
-                    
-                    {f"<img src='data:image/jpeg;base64,{image_data}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>" if image_data else ''}
-                    
-                    <div style='margin-top: 1rem;'>
-                        <p><strong>Renter:</strong> {booking_renter_email}</p>
-                        <p><strong>Pickup Date:</strong> {pickup_date}</p>
-                        <p><strong>Return Date:</strong> {return_date}</p>
-                        <p><strong>Location:</strong> {location}</p>
-                        <p><strong>Total Price:</strong> {format_currency(total_price)}</p>
-                        
-                        <h4>Additional Services:</h4>
-                        <ul>
-                            {f"<li>Insurance</li>" if insurance else ""}
-                            {f"<li>Driver</li>" if driver else ""}
-                            {f"<li>Delivery</li>" if delivery else ""}
-                            {f"<li>VIP Service</li>" if vip_service else ""}
-                        </ul>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
+        # Create a container for each booking
+        with st.container():
+            # Display car image if available
+            if image_data:
+                st.image(f"data:image/jpeg;base64,{image_data}", use_container_width=True)
+            
+            # Car and Booking Details
+            st.subheader(f"{model} ({year})")
+            
+            # Status display
+            status_colors = {
+                'pending': 'yellow',
+                'confirmed': 'green',
+                'rejected': 'red'
+            }
+            st.markdown(f"### Booking Status: {booking_status.upper()}")
+            
+            # Booking details
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Renter:** {renter_email}")
+                st.write(f"**Pickup Date:** {pickup_date}")
+                st.write(f"**Location:** {location}")
+            
+            with col2:
+                st.write(f"**Return Date:** {return_date}")
+                st.write(f"**Total Price:** {format_currency(total_price)}")
+            
+            # Additional Services
+            st.subheader("Additional Services")
+            services = []
+            if insurance:
+                services.append("Insurance")
+            if driver:
+                services.append("Driver")
+            if delivery:
+                services.append("Delivery")
+            if vip_service:
+                services.append("VIP Service")
+            
+            if services:
+                for service in services:
+                    st.info(service)
+            else:
+                st.info("No additional services selected")
             
             # Approval buttons
             col1, col2 = st.columns(2)
             with col1:
-                approve = st.form_submit_button("Approve Booking")
+                approve = st.button("Approve Booking", key=f"approve_{booking_id}")
             with col2:
-                reject = st.form_submit_button("Reject Booking")
+                reject = st.button("Reject Booking", key=f"reject_{booking_id}")
             
             if approve or reject:
                 new_status = 'confirmed' if approve else 'rejected'
@@ -1452,7 +1468,7 @@ def owner_bookings_page():
                 
                 # Create notification for renter
                 create_notification(
-                    booking_renter_email,
+                    renter_email,
                     f"Your booking for {model} has been {new_status}.",
                     f'booking_{new_status}'
                 )
@@ -1461,8 +1477,9 @@ def owner_bookings_page():
                 conn.close()
                 
                 st.success(f"Booking {new_status}")
-                st.rerun()
-                
+                st.experimental_rerun()
+            
+            st.markdown("---")
 
 def show_approved_listings():
     st.subheader("Approved Listings")
@@ -1584,14 +1601,14 @@ def main():
         else:
             st.warning("Please log in to view your bookings")
             st.session_state.current_page = 'login'
-
+    
     elif st.session_state.current_page == 'owner_bookings':
         if st.session_state.logged_in:
             owner_bookings_page()
         else:
             st.warning("Please log in to view bookings")
             st.session_state.current_page = 'login'
-
+    
 if __name__ == '__main__':
     try:
         main()
