@@ -1295,9 +1295,9 @@ def my_bookings_page():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Fetch user's bookings with car details
+    # Fetch user's bookings with car details and owner information
     c.execute('''
-        SELECT b.*, cl.model, cl.year, li.image_data
+        SELECT b.*, cl.model, cl.year, cl.owner_email, li.image_data
         FROM bookings b
         JOIN car_listings cl ON b.car_id = cl.id
         LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
@@ -1316,7 +1316,7 @@ def my_bookings_page():
         # Unpack booking details
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
-         booking_status, created_at, model, year, image_data) = booking
+         booking_status, created_at, model, year, owner_email, image_data) = booking
         
         st.markdown(f"""
             <div class='car-card'>
@@ -1342,10 +1342,107 @@ def my_bookings_page():
                         {f"<li>Delivery</li>" if delivery else ""}
                         {f"<li>VIP Service</li>" if vip_service else ""}
                     </ul>
+                    
+                    <p><strong>Owner Email:</strong> {owner_email}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
+def owner_bookings_page():
+    st.markdown("<h1>Bookings for My Cars</h1>", unsafe_allow_html=True)
+    
+    if st.button('← Back to Browse', key='owner_bookings_back'):
+        st.session_state.current_page = 'browse_cars'
+    
+    # Connect to database
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    
+    # Fetch bookings for cars owned by the current user
+    c.execute('''
+        SELECT b.*, cl.model, cl.year, b.user_email as renter_email, li.image_data
+        FROM bookings b
+        JOIN car_listings cl ON b.car_id = cl.id
+        LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
+        WHERE cl.owner_email = ?
+        ORDER BY b.created_at DESC
+    ''', (st.session_state.user_email,))
+    
+    bookings = c.fetchall()
+    conn.close()
+    
+    if not bookings:
+        st.info("No bookings for your cars.")
+        return
+    
+    for booking in bookings:
+        # Unpack booking details
+        (booking_id, renter_email, car_id, pickup_date, return_date, location, 
+         total_price, insurance, driver, delivery, vip_service, 
+         booking_status, created_at, model, year, booking_renter_email, image_data) = booking
+        
+        with st.form(key=f"booking_approval_{booking_id}"):
+            st.markdown(f"""
+                <div class='car-card'>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <h3 style='color: #4B0082;'>{model} ({year})</h3>
+                        <span class='status-badge {booking_status.lower()}'>
+                            {booking_status.upper()}
+                        </span>
+                    </div>
+                    
+                    {f"<img src='data:image/jpeg;base64,{image_data}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>" if image_data else ''}
+                    
+                    <div style='margin-top: 1rem;'>
+                        <p><strong>Renter:</strong> {booking_renter_email}</p>
+                        <p><strong>Pickup Date:</strong> {pickup_date}</p>
+                        <p><strong>Return Date:</strong> {return_date}</p>
+                        <p><strong>Location:</strong> {location}</p>
+                        <p><strong>Total Price:</strong> {format_currency(total_price)}</p>
+                        
+                        <h4>Additional Services:</h4>
+                        <ul>
+                            {f"<li>Insurance</li>" if insurance else ""}
+                            {f"<li>Driver</li>" if driver else ""}
+                            {f"<li>Delivery</li>" if delivery else ""}
+                            {f"<li>VIP Service</li>" if vip_service else ""}
+                        </ul>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Approval buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                approve = st.form_submit_button("Approve Booking")
+            with col2:
+                reject = st.form_submit_button("Reject Booking")
+            
+            if approve or reject:
+                new_status = 'confirmed' if approve else 'rejected'
+                
+                # Update booking status
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                c.execute('''
+                    UPDATE bookings 
+                    SET booking_status = ? 
+                    WHERE id = ?
+                ''', (new_status, booking_id))
+                
+                # Create notification for renter
+                create_notification(
+                    booking_renter_email,
+                    f"Your booking for {model} has been {new_status}.",
+                    f'booking_{new_status}'
+                )
+                
+                conn.commit()
+                conn.close()
+                
+                st.success(f"Booking {new_status}")
+                st.rerun()
+                
 
 def show_approved_listings():
     st.subheader("Approved Listings")
@@ -1389,9 +1486,13 @@ def main():
             if st.button("➕ List Your Car"):
                 st.session_state.current_page = 'list_your_car'
 
-          
+
+            # In the sidebar navigation section
             if st.button("🚗 My Bookings"):
                 st.session_state.current_page = 'my_bookings'
+
+            if st.button("📋 Bookings for My Cars"):
+                st.session_state.current_page = 'owner_bookings'
             
             # Show notifications with count
             unread_count = get_unread_notifications_count(st.session_state.user_email)
@@ -1462,6 +1563,13 @@ def main():
             my_bookings_page()
         else:
             st.warning("Please log in to view your bookings")
+            st.session_state.current_page = 'login'
+
+    elif st.session_state.current_page == 'owner_bookings':
+        if st.session_state.logged_in:
+            owner_bookings_page()
+        else:
+            st.warning("Please log in to view bookings")
             st.session_state.current_page = 'login'
 
 if __name__ == '__main__':
