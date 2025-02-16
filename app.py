@@ -143,22 +143,25 @@ if 'selected_car' not in st.session_state:
     st.session_state.selected_car = None
 
 # Database setup
+
 def init_db():
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
+    """Initialize database and create tables"""
     
-    # Users table with role field
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            full_name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            phone TEXT NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+    
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
     
     # Bookings table
     c.execute('''
@@ -276,6 +279,51 @@ cars_data = {
         }
     ]
 }
+
+
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+
+def setup_database():
+    """Ensure database is properly initialized"""
+    # Create database and tables
+    init_db()
+    
+    # Create admin user
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Check if admin exists
+        c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
+        admin_exists = c.fetchone()
+        
+        if not admin_exists:
+            # Create admin user
+            admin_password = hash_password('admin123')  # Change this in production
+            c.execute('''
+                INSERT INTO users (full_name, email, phone, password, role)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                'Admin User',
+                'admin@luxuryrentals.com',
+                '+971500000000',
+                admin_password,
+                'admin'
+            ))
+            conn.commit()
+            
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
 
 # Authentication functions
 def hash_password(password):
@@ -684,6 +732,14 @@ def display_cars(search=""):
     conn.close()
 
 def main():
+    create_folder_structure()
+    
+    # Setup database and admin user
+    setup_database()
+    
+    # Run the main application
+    main()
+
     # Create admin user if not exists
     create_admin_user()
     
