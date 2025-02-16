@@ -585,7 +585,10 @@ def welcome_page():
             st.session_state.current_page = 'browse_cars'
 
 def login_page():
- 
+    if st.button('← Back to Welcome', key='login_back'):
+        st.session_state.current_page = 'welcome'
+    
+    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
@@ -639,11 +642,8 @@ def signup_page():
                     st.error('Email already exists')
 
 def browse_cars_page():
-    col1, col2, col3 = st.columns([1,8,1])
-    with col1:
-        if st.button('← Back', key='browse_back'):
-            st.session_state.current_page = 'welcome'
-    with col3:
+    col1, col2 = st.columns([9, 1])
+    with col2:
         if st.session_state.logged_in:
             unread_count = get_unread_notifications_count(st.session_state.user_email)
             if unread_count > 0:
