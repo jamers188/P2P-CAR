@@ -642,8 +642,6 @@ def main():
     # Setup database and admin user
     setup_database()
 
-    # Create admin user if not exists
-    create_admin_user()
     
     # Sidebar navigation for logged-in users
     if st.session_state.logged_in:
