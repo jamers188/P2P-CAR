@@ -1373,7 +1373,6 @@ def my_bookings_page():
         WHERE b.user_email = ?
         ORDER BY b.created_at DESC
     ''', (st.session_state.user_email,))
-
     
     bookings = c.fetchall()
     conn.close()
@@ -1384,16 +1383,22 @@ def my_bookings_page():
     
     for booking in bookings:
         # Unpack booking details
+        # Adjust the unpacking to match the actual columns in your database
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
-         booking_status, created_at, owner_email, model, year, image_data,
-         insurance_price, driver_price, delivery_price, vip_service_price) = booking
+         booking_status, created_at, 
+         insurance_price, driver_price, delivery_price, vip_service_price,
+         model, year, owner_email, image_data) = booking
         
         # Create a card-like container
         with st.container():
             # Display car image if available
             if image_data:
-                st.image(f"data:image/jpeg;base64,{image_data}", use_container_width=True)
+                st.image(
+                    f"data:image/jpeg;base64,{image_data}", 
+                    use_container_width=True, 
+                    caption=f"{model} ({year})"
+                )
             
             # Car details
             st.subheader(f"{model} ({year})")
@@ -1416,37 +1421,41 @@ def my_bookings_page():
             st.subheader("Price Breakdown")
             col1, col2 = st.columns(2)
             with col1:
-                st.write(f"Base Rental: {format_currency(total_price - insurance_cost - driver_cost - delivery_cost - vip_service_cost)}")
+                # Calculate base rental by subtracting additional services
+                base_price = total_price - (insurance_price + driver_price + delivery_price + vip_service_price)
+                st.write(f"Base Rental: {format_currency(base_price)}")
+                
                 if insurance:
-                    st.write(f"Insurance: {format_currency(insurance_cost)}")
+                    st.write(f"Insurance: {format_currency(insurance_price)}")
                 if driver:
-                    st.write(f"Driver: {format_currency(driver_cost)}")
+                    st.write(f"Driver: {format_currency(driver_price)}")
             with col2:
                 if delivery:
-                    st.write(f"Delivery: {format_currency(delivery_cost)}")
+                    st.write(f"Delivery: {format_currency(delivery_price)}")
                 if vip_service:
-                    st.write(f"VIP Service: {format_currency(vip_service_cost)}")
+                    st.write(f"VIP Service: {format_currency(vip_service_price)}")
             
             # Additional Services
             st.subheader("Additional Services")
             services = []
             if insurance:
-                services.append(("Insurance", insurance_cost))
+                services.append(("Insurance", insurance_price))
             if driver:
-                services.append(("Driver", driver_cost))
+                services.append(("Driver", driver_price))
             if delivery:
-                services.append(("Delivery", delivery_cost))
+                services.append(("Delivery", delivery_price))
             if vip_service:
-                services.append(("VIP Service", vip_service_cost))
+                services.append(("VIP Service", vip_service_price))
             
             if services:
-                for service, cost in services:
-                    st.info(f"{service}: {format_currency(cost)}")
+                for service, price in services:
+                    st.info(f"{service}: {format_currency(price)}")
             else:
                 st.info("No additional services selected")
             
             st.markdown("---")
-            
+
+
 def owner_bookings_page():
     st.markdown("<h1>Bookings for My Cars</h1>", unsafe_allow_html=True)
     
