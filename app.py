@@ -144,7 +144,6 @@ if 'selected_car' not in st.session_state:
 
 # Database setup
 def setup_database():
-    """Initialize all database tables and admin user"""
     try:
         # Remove existing database to start fresh
         if os.path.exists('car_rental.db'):
@@ -153,6 +152,7 @@ def setup_database():
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
 
+        
         # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -198,7 +198,8 @@ def setup_database():
         # In setup_database() function, modify the bookings table creation
 
     
-    # Modify the bookings table creation
+
+        # Create bookings table with all required columns
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -218,9 +219,12 @@ def setup_database():
                 driver_price REAL DEFAULT 0,
                 delivery_price REAL DEFAULT 0,
                 vip_service_price REAL DEFAULT 0,
-                FOREIGN KEY (user_email) REFERENCES users (email)
+                FOREIGN KEY (user_email) REFERENCES users (email),
+                FOREIGN KEY (car_id) REFERENCES car_listings (id)
             )
         ''')
+
+  
        
 
         # Create notifications table
@@ -269,6 +273,8 @@ def setup_database():
             admin_password,
             'admin'
         ))
+
+       
 
         conn.commit()
         print("Database initialized successfully")
@@ -1131,6 +1137,37 @@ def show_listings_by_status(status):
                     st.markdown("</div>", unsafe_allow_html=True)
     
     conn.close()
+
+
+def update_bookings_table():
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Check existing columns
+        c.execute("PRAGMA table_info(bookings)")
+        columns = [column[1] for column in c.fetchall()]
+        
+        # Add missing columns if they don't exist
+        if 'insurance_price' not in columns:
+            c.execute("ALTER TABLE bookings ADD COLUMN insurance_price REAL DEFAULT 0")
+        if 'driver_price' not in columns:
+            c.execute("ALTER TABLE bookings ADD COLUMN driver_price REAL DEFAULT 0")
+        if 'delivery_price' not in columns:
+            c.execute("ALTER TABLE bookings ADD COLUMN delivery_price REAL DEFAULT 0")
+        if 'vip_service_price' not in columns:
+            c.execute("ALTER TABLE bookings ADD COLUMN vip_service_price REAL DEFAULT 0")
+        
+        conn.commit()
+        print("Bookings table updated successfully")
+    except sqlite3.Error as e:
+        print(f"Database update error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+
+
 def show_car_details(car):
     # Add a Go Back button
     col1, col2 = st.columns([1,7])
@@ -1535,10 +1572,13 @@ def main():
     # Create necessary folders
     create_folder_structure()
     
-    # Setup database if not exists
+    # Setup or update database
     if not os.path.exists('car_rental.db'):
         setup_database()
+    else:
+        update_bookings_table()
     
+
     # Sidebar navigation for logged-in users
     if st.session_state.logged_in:
         with st.sidebar:
