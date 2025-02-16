@@ -104,6 +104,31 @@ st.markdown("""
             background-color: #F8D7DA;
             color: #721C24;
         }
+        
+        .admin-review-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 1.5rem 0;
+        }
+        
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .image-gallery img {
+            width: 100%;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .image-gallery img:hover {
+            transform: scale(1.05);
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -122,7 +147,7 @@ def init_db():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Users table
+    # Users table with role field
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -130,6 +155,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             phone TEXT NOT NULL,
             password TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -164,12 +190,37 @@ def init_db():
             price REAL NOT NULL,
             location TEXT NOT NULL,
             description TEXT,
-            image_data TEXT,
             category TEXT NOT NULL,
             specs TEXT NOT NULL,
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (owner_email) REFERENCES users (email)
+        )
+    ''')
+    
+    # Car listing images table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS listing_images (
+            id INTEGER PRIMARY KEY,
+            listing_id INTEGER NOT NULL,
+            image_data TEXT NOT NULL,
+            is_primary BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (listing_id) REFERENCES car_listings (id)
+        )
+    ''')
+    
+    # Admin reviews table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS admin_reviews (
+            id INTEGER PRIMARY KEY,
+            listing_id INTEGER NOT NULL,
+            admin_email TEXT NOT NULL,
+            comment TEXT,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (listing_id) REFERENCES car_listings (id),
+            FOREIGN KEY (admin_email) REFERENCES users (email)
         )
     ''')
     
@@ -192,7 +243,7 @@ def init_db():
 # Initialize database
 init_db()
 
-# Sample car data
+# Sample car data for featured listings
 cars_data = {
     'Luxury': [
         {
@@ -207,24 +258,11 @@ cars_data = {
                 'acceleration': '0-60 mph in 3.5s'
             },
             'available': True
-        },
-        {
-            'id': 2,
-            'model': 'Rolls-Royce Ghost',
-            'price': 3000,
-            'location': 'Palm Jumeirah',
-            'image': 'https://example.com/ghost.jpg',
-            'specs': {
-                'engine': '6.75L V12',
-                'power': '563 hp',
-                'acceleration': '0-60 mph in 4.8s'
-            },
-            'available': True
         }
     ],
     'SUV': [
         {
-            'id': 3,
+            'id': 2,
             'model': 'Range Rover Autobiography',
             'price': 1500,
             'location': 'Dubai Marina',
@@ -236,21 +274,6 @@ cars_data = {
             },
             'available': True
         }
-    ],
-    'Sports': [
-        {
-            'id': 4,
-            'model': 'Ferrari F8 Tributo',
-            'price': 3500,
-            'location': 'Downtown Dubai',
-            'image': 'https://example.com/f8.jpg',
-            'specs': {
-                'engine': '3.9L V8 Twin-Turbo',
-                'power': '710 hp',
-                'acceleration': '0-60 mph in 2.9s'
-            },
-            'available': True
-        }
     ]
 }
 
@@ -258,13 +281,13 @@ cars_data = {
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def create_user(full_name, email, phone, password):
+def create_user(full_name, email, phone, password, role='user'):
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     try:
         c.execute(
-            'INSERT INTO users (full_name, email, phone, password) VALUES (?, ?, ?, ?)',
-            (full_name, email, phone, hash_password(password))
+            'INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)',
+            (full_name, email, phone, hash_password(password), role)
         )
         conn.commit()
         return True
@@ -282,6 +305,25 @@ def verify_user(email, password):
     if result and result[0] == hash_password(password):
         return True
     return False
+
+# Create admin user if not exists
+def create_admin_user():
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    
+    # Check if admin exists
+    c.execute('SELECT * FROM users WHERE email = ? AND role = ?', ('admin@luxuryrentals.com', 'admin'))
+    if not c.fetchone():
+        # Create admin user
+        create_user(
+            'Admin User',
+            'admin@luxuryrentals.com',
+            '+971500000000',
+            'admin123',  # Change this in production
+            'admin'
+        )
+    
+    conn.close()
 
 # Notification functions
 def create_notification(user_email, message, type):
@@ -344,13 +386,21 @@ def login_page():
             if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.current_page = 'browse_cars'
+                
+                # Check if user is admin
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                c.execute('SELECT role FROM users WHERE email = ?', (email,))
+                role = c.fetchone()[0]
+                conn.close()
+                
+                if role == 'admin':
+                    st.session_state.current_page = 'admin_panel'
+                else:
+                    st.session_state.current_page = 'browse_cars'
                 st.success('Login successful!')
             else:
                 st.error('Invalid credentials')
-        
-        if st.button('Forgot Password?', key='forgot_password'):
-            st.session_state.current_page = 'reset_password'
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
@@ -374,25 +424,181 @@ def signup_page():
             else:
                 if create_user(full_name, email, phone, password):
                     st.success('Account created successfully!')
+                    create_notification(email, "Welcome to Luxury Car Rentals!", "welcome")
                     st.session_state.current_page = 'login'
                 else:
                     st.error('Email already exists')
 
-def reset_password_page():
-    if st.button('← Back to Login', key='reset_back'):
-        st.session_state.current_page = 'login'
+def admin_panel():
+    st.markdown("<h1>Admin Panel</h1>", unsafe_allow_html=True)
     
-    st.markdown("<h1>Reset Password</h1>", unsafe_allow_html=True)
+    # Back button
+    if st.button('← Back to Browse', key='admin_back'):
+        st.session_state.current_page = 'browse_cars'
     
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        email = st.text_input('Enter your email to reset password')
-        
-        if st.button('Send Reset Link', key='reset_submit'):
-            st.success('Check your email for password reset instructions')
+    # Navigation tabs
+    tab1, tab2, tab3 = st.tabs(["Pending Listings", "Approved Listings", "Rejected Listings"])
+    
+    with tab1:
+        show_pending_listings()
+    
+    with tab2:
+        show_approved_listings()
+    
+    with tab3:
+        show_rejected_listings()
+
+def show_pending_listings():
+    st.subheader("Pending Listings")
+    
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    
+    # Get pending listings
+    c.execute('''
+        SELECT cl.*, u.full_name, u.email, u.phone
+        FROM car_listings cl
+        JOIN users u ON cl.owner_email = u.email
+        WHERE cl.status = 'pending'
+        ORDER BY cl.created_at DESC
+    ''')
+    
+    pending_listings = c.fetchall()
+    
+    if not pending_listings:
+        st.info("No pending listings to review")
+    else:
+        for listing in pending_listings:
+            with st.container():
+                # Get images for this listing
+                c.execute('SELECT * FROM listing_images WHERE listing_id = ?', (listing[0],))
+                images = c.fetchall()
+                
+                st.markdown(f"""
+                    <div class='admin-review-card'>
+                        <h3>{listing[2]} ({listing[3]})</h3>
+                        <p><strong>Owner:</strong> {listing[11]} ({listing[12]})</p>
+                        <p><strong>Phone:</strong> {listing[13]}</p>
+                        <p><strong>Price:</strong> AED {listing[4]}/day</p>
+                        <p><strong>Location:</strong> {listing[5]}</p>
+                        <p><strong>Description:</strong> {listing[6]}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Display images in a grid
+                if images:
+                    st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
+                    cols = st.columns(len(images))
+                    for idx, img in enumerate(images):
+                        with cols[idx]:
+                            st.image(
+                                f"data:image/jpeg;base64,{img[2]}", 
+                                caption=f"Image {idx+1}",
+                                use_column_width=True
+                            )
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Review form
+                with st.form(key=f"review_form_{listing[0]}"):
+                    comment = st.text_area("Review Comment")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        approve = st.form_submit_button("Approve")
+                    with col2:
+                        reject = st.form_submit_button("Reject")
+                    
+                    if approve or reject:
+                        status = 'approved' if approve else 'rejected'
+                        
+                        # Update listing status
+                        c.execute('''
+                            UPDATE car_listings 
+                            SET status = ? 
+                            WHERE id = ?
+                        ''', (status, listing[0]))
+                        
+                        # Add admin review
+                        c.execute('''
+                            INSERT INTO admin_reviews 
+                            (listing_id, admin_email, comment, status)
+                            VALUES (?, ?, ?, ?)
+                        ''', (
+                            listing[0],
+                            st.session_state.user_email,
+                            comment,
+                            status
+                        ))
+                        
+                        # Create notification for owner
+                        create_notification(
+                            listing[12],
+                            f"Your listing for {listing[2]} has been {status}. {comment if comment else ''}",
+                            f'listing_{status}'
+                        )
+                        
+                        conn.commit()
+                        st.success(f"Listing has been {status}")
+                        st.rerun()
+    
+    conn.close()
+
+def show_approved_listings():
+    st.subheader("Approved Listings")
+    show_listings_by_status('approved')
+
+def show_rejected_listings():
+    st.subheader("Rejected Listings")
+    show_listings_by_status('rejected')
+
+def show_listings_by_status(status):
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    
+    c.execute('''
+        SELECT cl.*, u.full_name, ar.comment, ar.created_at
+        FROM car_listings cl
+        JOIN users u ON cl.owner_email = u.email
+        LEFT JOIN admin_reviews ar ON cl.id = ar.listing_id
+        WHERE cl.status = ?
+        ORDER BY cl.created_at DESC
+    ''', (status,))
+    
+    listings = c.fetchall()
+    
+    if not listings:
+        st.info(f"No {status} listings")
+    else:
+        for listing in listings:
+            with st.container():
+                # Get images
+                c.execute('SELECT * FROM listing_images WHERE listing_id = ?', (listing[0],))
+                images = c.fetchall()
+                
+                st.markdown(f"""
+                    <div class='admin-review-card'>
+                        <h3>{listing[2]} ({listing[3]})</h3>
+                        <p><strong>Owner:</strong> {listing[11]}</p>
+                        <p><strong>Review Comment:</strong> {listing[12] or 'No comment'}</p>
+                        <p><strong>Review Date:</strong> {listing[13]}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Display images
+                if images:
+                    st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
+                    cols = st.columns(len(images))
+                    for idx, img in enumerate(images):
+                        with cols[idx]:
+                            st.image(
+                                f"data:image/jpeg;base64,{img[2]}", 
+                                caption=f"Image {idx+1}",
+                                use_column_width=True
+                            )
+                    st.markdown("</div>", unsafe_allow_html=True)
+    
+    conn.close()
 
 def browse_cars_page():
-    # Navigation header
     col1, col2, col3 = st.columns([1,8,1])
     with col1:
         if st.button('← Back', key='browse_back'):
@@ -412,235 +618,116 @@ def browse_cars_page():
     # Search and filters
     search = st.text_input('Search for your dream car', placeholder='e.g., "Lamborghini"')
     
-    st.markdown("<h3 style='color: #4B0082; margin-top: 1rem;'>Categories</h3>", unsafe_allow_html=True)
-    cat_col1, cat_col2, cat_col3, cat_col4 = st.columns(4)
-    
-    with cat_col1:
-        luxury = st.button('🎯 Luxury', key='luxury_filter')
-    with cat_col2:
-        suv = st.button('🚙 SUV', key='suv_filter')
-    with cat_col3:
-        sports = st.button('🏎 Sports', key='sports_filter')
-    with cat_col4:
-        if st.button('List Your Car', key='list_car'):
-            st.session_state.current_page = 'list_your_car'
-            st.rerun()
-    
     # Display cars
-    for category, cars in cars_data.items():
-        if (luxury and category == 'Luxury') or \
-           (suv and category == 'SUV') or \
-           (sports and category == 'Sports') or \
-           (not any([luxury, suv, sports])):
-            
-            st.markdown(f"<h2 style='color: #4B0082; margin-top: 2rem;'>{category}</h2>", unsafe_allow_html=True)
-            
-            cols = st.columns(3)
-            for idx, car in enumerate(cars):
-                if search.lower() in car['model'].lower() or not search:
-                    with cols[idx % 3]:
-                        st.markdown(f"""
-                            <div class='car-card'>
-                                <img src='{car['image']}' style='width: 100%; border-radius: 10px;'>
-                                <h3 style='color: #4B0082; margin: 1rem 0;'>{car['model']}</h3>
-                                <p style='color: #666;'>AED {car['price']}/day</p>
-                                <p style='color: #666;'>{car['location']}</p>
-                                <div style='color: #666; font-size: 0.9rem;'>
-                                    <p>🏎 {car['specs']['engine']}</p>
-                                    <p>⚡ {car['specs']['power']}</p>
-                                    <p>🚀 {car['specs']['acceleration']}</p>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        if st.button('Book Now', key=f"book_{car['id']}"):
-                            st.session_state.selected_car = car
-                            st.session_state.current_page = 'book_car'
-                            st.rerun()
+    display_cars(search)
 
-def list_your_car_page():
-    st.markdown("<h1>List Your Car</h1>", unsafe_allow_html=True)
-    
-    if not st.session_state.logged_in:
-        st.warning("Please log in to list your car")
-        if st.button("Go to Login"):
-            st.session_state.current_page = 'login'
-        return
-    
-    # Back button
-    if st.button('← Back to Browse', key='list_back'):
-        st.session_state.current_page = 'browse_cars'
-        st.rerun()
-    
-    # Create form for car listing
-    with st.form("car_listing_form"):
-        st.markdown("<h3 style='color: #4B0082;'>Car Details</h3>", unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            model = st.text_input("Car Model*")
-            year = st.number_input("Year*", min_value=1990, max_value=datetime.now().year)
-            price = st.number_input("Daily Rate (AED)*", min_value=0)
-            category = st.selectbox("Category*", ["Luxury", "SUV", "Sports", "Sedan"])
-        
-        with col2:
-            location = st.text_input("Location*")
-            engine = st.text_input("Engine Specifications*")
-            mileage = st.number_input("Mileage (km)*", min_value=0)
-            transmission = st.selectbox("Transmission*", ["Automatic", "Manual"])
-        
-        description = st.text_area("Description", help="Provide detailed information about your car")
-        
-        # Image upload
-        uploaded_file = st.file_uploader("Upload Car Images*", type=["jpg", "jpeg", "png"])
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Image", use_column_width=True)
-        
-        # Additional features
-        st.markdown("<h3 style='color: #4B0082;'>Additional Features</h3>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            leather_seats = st.checkbox("Leather Seats")
-            bluetooth = st.checkbox("Bluetooth")
-        with col2:
-            parking_sensors = st.checkbox("Parking Sensors")
-            cruise_control = st.checkbox("Cruise Control")
-        with col3:
-            sunroof = st.checkbox("Sunroof")
-            navigation = st.checkbox("Navigation")
-        
-        # Terms and conditions
-        st.markdown("---")
-        agree = st.checkbox("I agree to the terms and conditions")
-        
-        submit_button = st.form_submit_button("Submit Listing")
-        
-        if submit_button:
-            if not all([model, year, price, location, engine, mileage, uploaded_file, agree]):
-                st.error("Please fill in all required fields and accept terms and conditions")
-            else:
-                # Process image
-                img_byte_arr = io.BytesIO()
-                image.save(img_byte_arr, format=image.format)
-                img_byte_arr = img_byte_arr.getvalue()
-                img_base64 = base64.b64encode(img_byte_arr).decode()
-                
-                # Create specs dictionary
-                specs = {
-                    "engine": engine,
-                    "mileage": mileage,
-                    "transmission": transmission,
-                    "features": {
-                        "leather_seats": leather_seats,
-                        "bluetooth": bluetooth,
-                        "parking_sensors": parking_sensors,
-                        "cruise_control": cruise_control,
-                        "sunroof": sunroof,
-                        "navigation": navigation
-                    }
-                }
-                
-                # Save to database
-                conn = sqlite3.connect('car_rental.db')
-                c = conn.cursor()
-                try:
-                    c.execute('''
-                        INSERT INTO car_listings 
-                        (owner_email, model, year, price, location, description, 
-                        image_data, category, specs, status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        st.session_state.user_email, model, year, price, 
-                        location, description, img_base64, category, 
-                        json.dumps(specs), 'pending'
-                    ))
-                    conn.commit()
-                    
-                    # Create notification
-                    create_notification(
-                        st.session_state.user_email,
-                        f"Your listing for {model} has been submitted for review",
-                        'listing_submitted'
-                    )
-                    
-                    st.success("Your car has been listed successfully! Our team will review it shortly.")
-                    
-                except Exception as e:
-                    st.error(f"An error occurred while listing your car. Please try again.")
-                finally:
-                    conn.close()
-
-def notifications_page():
-    st.markdown("<h1>Notifications</h1>", unsafe_allow_html=True)
-    
-    if not st.session_state.logged_in:
-        st.warning("Please log in to view notifications")
-        if st.button("Go to Login"):
-            st.session_state.current_page = 'login'
-        return
-    
-    if st.button('← Back to Browse', key='notifications_back'):
-        st.session_state.current_page = 'browse_cars'
-        st.rerun()
-    
-    # Fetch notifications
+def display_cars(search=""):
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Mark notifications as read
+    # Get approved listings
     c.execute('''
-        UPDATE notifications 
-        SET read = TRUE 
-        WHERE user_email = ? AND read = FALSE
-    ''', (st.session_state.user_email,))
+        SELECT cl.*, li.image_data
+        FROM car_listings cl
+        LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
+        WHERE cl.status = 'approved'
+        ORDER BY cl.created_at DESC
+    ''')
     
-    # Get all notifications
-    c.execute('''
-        SELECT * FROM notifications 
-        WHERE user_email = ? 
-        ORDER BY created_at DESC
-    ''', (st.session_state.user_email,))
+    listings = c.fetchall()
     
-    notifications = c.fetchall()
-    conn.commit()
+    # Group listings by category
+    categorized_listings = {}
+    for listing in listings:
+        if search.lower() in listing[2].lower():  # Check if search matches model name
+            category = listing[7]  # Category field
+            if category not in categorized_listings:
+                categorized_listings[category] = []
+            categorized_listings[category].append(listing)
+    
+    # Display listings by category
+    for category, cars in categorized_listings.items():
+        st.markdown(f"<h2 style='color: #4B0082; margin-top: 2rem;'>{category}</h2>", unsafe_allow_html=True)
+        
+        cols = st.columns(3)
+        for idx, car in enumerate(cars):
+            with cols[idx % 3]:
+                specs = json.loads(car[8])  # Parse specs JSON
+                st.markdown(f"""
+                    <div class='car-card'>
+                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; border-radius: 10px;'>
+                        <h3 style='color: #4B0082; margin: 1rem 0;'>{car[2]} ({car[3]})</h3>
+                        <p style='color: #666;'>AED {car[4]}/day</p>
+                        <p style='color: #666;'>{car[5]}</p>
+                        <div style='color: #666; font-size: 0.9rem;'>
+                            <p>🏎 {specs['engine']}</p>
+                            <p>📊 {specs['mileage']}km</p>
+                            <p>⚙️ {specs['transmission']}</p>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button('Book Now', key=f"book_{car[0]}"):
+                    st.session_state.selected_car = {
+                        'id': car[0],
+                        'model': car[2],
+                        'year': car[3],
+                        'price': car[4],
+                        'location': car[5],
+                        'specs': specs,
+                        'image': car[11],
+                        'owner_email': car[1]
+                    }
+                    st.session_state.current_page = 'book_car'
+                    st.rerun()
+    
     conn.close()
-    
-    if not notifications:
-        st.info("No notifications")
-    else:
-        for notif in notifications:
-            st.markdown(f"""
-                <div style='background-color: white; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-                    <p style='margin: 0;'>{notif[2]}</p>
-                    <small style='color: #666;'>{notif[5]}</small>
-                </div>
-            """, unsafe_allow_html=True)
 
 def main():
+    # Create admin user if not exists
+    create_admin_user()
+    
     # Sidebar navigation for logged-in users
     if st.session_state.logged_in:
         with st.sidebar:
             st.markdown("### My Account")
             st.write(f"Welcome, {st.session_state.user_email}")
             
+            # Get user role
+            conn = sqlite3.connect('car_rental.db')
+            c = conn.cursor()
+            c.execute('SELECT role FROM users WHERE email = ?', (st.session_state.user_email,))
+            role = c.fetchone()[0]
+            conn.close()
+            
+            # Show admin panel button for admin users
+            if role == 'admin':
+                st.markdown("### Admin Functions")
+                if st.button("🔧 Admin Panel"):
+                    st.session_state.current_page = 'admin_panel'
+                st.markdown("---")
+            
+            # Regular navigation
+            if st.button("🚗 Browse Cars"):
+                st.session_state.current_page = 'browse_cars'
+            
+            if st.button("📝 My Listings"):
+                st.session_state.current_page = 'my_listings'
+            
+            if st.button("➕ List Your Car"):
+                st.session_state.current_page = 'list_your_car'
+            
+            # Show notifications with count
             unread_count = get_unread_notifications_count(st.session_state.user_email)
             if unread_count > 0:
-                st.markdown(f"🔔 **{unread_count}** new notifications")
+                if st.button(f"🔔 Notifications ({unread_count})"):
+                    st.session_state.current_page = 'notifications'
+            else:
+                if st.button("🔔 Notifications"):
+                    st.session_state.current_page = 'notifications'
             
             st.markdown("---")
-            
-            if st.button("Browse Cars"):
-                st.session_state.current_page = 'browse_cars'
-            if st.button("My Listings"):
-                st.session_state.current_page = 'my_listings'
-            if st.button("List Your Car"):
-                st.session_state.current_page = 'list_your_car'
-            if st.button("Notifications"):
-                st.session_state.current_page = 'notifications'
-            
-            st.markdown("---")
-            if st.button("Logout"):
+            if st.button("👋 Logout"):
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = 'welcome'
@@ -649,18 +736,76 @@ def main():
     # Main content based on current page
     if st.session_state.current_page == 'welcome':
         welcome_page()
+    
     elif st.session_state.current_page == 'login':
         login_page()
+    
     elif st.session_state.current_page == 'signup':
         signup_page()
-    elif st.session_state.current_page == 'reset_password':
-        reset_password_page()
+    
+    elif st.session_state.current_page == 'admin_panel':
+        if st.session_state.logged_in:
+            # Verify admin role
+            conn = sqlite3.connect('car_rental.db')
+            c = conn.cursor()
+            c.execute('SELECT role FROM users WHERE email = ?', (st.session_state.user_email,))
+            role = c.fetchone()[0]
+            conn.close()
+            
+            if role == 'admin':
+                admin_panel()
+            else:
+                st.error("Access denied. Admin privileges required.")
+                st.session_state.current_page = 'browse_cars'
+        else:
+            st.warning("Please log in first")
+            st.session_state.current_page = 'login'
+    
     elif st.session_state.current_page == 'browse_cars':
         browse_cars_page()
+    
     elif st.session_state.current_page == 'list_your_car':
-        list_your_car_page()
+        if st.session_state.logged_in:
+            list_your_car_page()
+        else:
+            st.warning("Please log in to list your car")
+            st.session_state.current_page = 'login'
+    
+    elif st.session_state.current_page == 'my_listings':
+        if st.session_state.logged_in:
+            my_listings_page()
+        else:
+            st.warning("Please log in to view your listings")
+            st.session_state.current_page = 'login'
+    
     elif st.session_state.current_page == 'notifications':
-        notifications_page()
+        if st.session_state.logged_in:
+            notifications_page()
+        else:
+            st.warning("Please log in to view notifications")
+            st.session_state.current_page = 'login'
+    
+    elif st.session_state.current_page == 'book_car':
+        if st.session_state.logged_in:
+            if st.session_state.selected_car:
+                book_car_page()
+            else:
+                st.error("No car selected")
+                st.session_state.current_page = 'browse_cars'
+        else:
+            st.warning("Please log in to book a car")
+            st.session_state.current_page = 'login'
+
+def create_folder_structure():
+    """Create necessary folders for the application"""
+    folders = ['images', 'temp', 'uploads']
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
 if __name__ == '__main__':
+    # Setup application structure
+    create_folder_structure()
+    
+    # Run the main application
     main()
