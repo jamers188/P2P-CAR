@@ -203,7 +203,27 @@ def setup_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
+    # Create bookings table if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY,
+            user_email TEXT NOT NULL,
+            car_id INTEGER NOT NULL,
+            pickup_date TEXT NOT NULL,
+            return_date TEXT NOT NULL,
+            location TEXT NOT NULL,
+            total_price REAL NOT NULL,
+            insurance BOOLEAN,
+            driver BOOLEAN,
+            delivery BOOLEAN,
+            vip_service BOOLEAN,
+            booking_status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_email) REFERENCES users (email)
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -331,23 +351,20 @@ def login_page():
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
 
-                # Check user role (handling empty result)
+                # Safe user role check
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
                 c.execute('SELECT role FROM users WHERE email = ?', (email,))
                 result = c.fetchone()
                 conn.close()
 
-                # Check if user exists in DB
-                if result:
-                    role = result[0]
-                    if role == 'admin':
-                        st.session_state.current_page = 'admin_panel'
-                    else:
-                        st.session_state.current_page = 'browse_cars'
-                    st.success('Login successful!')
+                role = result[0] if result else 'user'  # Default role if not found
+
+                if role == 'admin':
+                    st.session_state.current_page = 'admin_panel'
                 else:
-                    st.error("User not found. Please check your email.")
+                    st.session_state.current_page = 'browse_cars'
+                st.success('Login successful!')
             else:
                 st.error('Invalid credentials')
 
@@ -634,6 +651,8 @@ def display_cars(search=""):
     conn.close()
 
 def main():
+    
+    setup_database()
     create_folder_structure()
     
     # Setup database and admin user
