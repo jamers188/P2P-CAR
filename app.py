@@ -253,22 +253,36 @@ def verify_user(email, password):
 
 # Create admin user if not exists
 def create_admin_user():
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    
-    # Check if admin exists
-    c.execute('SELECT * FROM users WHERE email = ? AND role = ?', ('admin@luxuryrentals.com', 'admin'))
-    if not c.fetchone():
-        # Create admin user
-        create_user(
-            'Admin User',
-            'admin@luxuryrentals.com',
-            '+971500000000',
-            'admin123',  # Change this in production
-            'admin'
-        )
-    
-    conn.close()
+    """Ensure the admin user exists in the database."""
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Ensure database is initialized
+        init_db()
+        
+        # Check if admin exists
+        c.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'")
+        if c.fetchone()[0] == 0:
+            print("⚠️ Users table does not exist. Initializing database...")
+            init_db()
+
+        c.execute('SELECT * FROM users WHERE email = ? AND role = ?', ('admin@luxuryrentals.com', 'admin'))
+        if not c.fetchone():
+            # Insert admin user
+            create_user(
+                full_name='Admin User',
+                email='admin@luxuryrentals.com',
+                phone='+971500000000',
+                password='admin123',  # Change this in production
+                role='admin'
+            )
+            print("✅ Admin user created successfully.")
+        
+    except sqlite3.Error as e:
+        print(f"Database Error: {e}")
+    finally:
+        conn.close()
 
 # Notification functions
 def create_notification(user_email, message, type):
