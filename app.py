@@ -421,22 +421,28 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials and save session"""
-    if email == "admin@luxuryrentals.com" and password == "admin123":
-        save_session(email)
-        return True
-
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    c.execute('SELECT password FROM users WHERE email = ?', (email,))
-    result = c.fetchone()
-    conn.close()
-
-    if result and result[0] == hash_password(password):
-        save_session(email)
-        return True
-    return False
-    
+    """Verify user credentials with improved error handling"""
+    try:
+        # Special case for admin
+        if email == "admin@luxuryrentals.com" and password == "admin123":
+            return True
+            
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        result = c.fetchone()
+        conn.close()
+        
+        # Check if user exists and password matches
+        if result and result[0] == hash_password(password):
+            return True
+        
+        print(f"Login failed for {email}")
+        return False
+    except sqlite3.Error as e:
+        print(f"Database error during login: {e}")
+        return False
+        
 def get_user_role(email):
     """Get user's role from database"""
     try:
@@ -613,37 +619,79 @@ def login_page():
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email')
-        password = st.text_input('Password', type='password')
+        email = st.text_input('Email', key='login_email')
+        password = st.text_input('Password', type='password', key='login_password')
+        
+        # Add print statements for debugging
+        st.write(f"Debug - Email: {email}")
+        st.write(f"Debug - Password: {'*' * len(password) if password else 'Empty'}")
         
         if st.button('Login', key='login_submit'):
-            # Validate input fields
-            if not email or not password:
-                st.error("Please enter both email and password")
+            st.write("Login button clicked")
+            
+            # Comprehensive input validation
+            if not email:
+                st.error("Please enter an email address")
                 return
             
-            # Verify user credentials
-            if verify_user(email, password):
-                # Get user role
-                role = get_user_role(email)
+            if not password:
+                st.error("Please enter a password")
+                return
+            
+            # Print credentials for debugging
+            print(f"Attempting login with email: {email}")
+            
+            try:
+                # Verify user credentials
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
                 
-                # Set login state
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
+                # Check user exists
+                c.execute('SELECT * FROM users WHERE email = ?', (email,))
+                user = c.fetchone()
                 
-                # Save session
-                save_session(email, 'browse_cars')
+                if not user:
+                    st.error(f"No user found with email: {email}")
+                    conn.close()
+                    return
                 
-                # Determine next page based on role
-                if role == 'admin':
-                    st.session_state.current_page = 'admin_panel'
+                # Verify password
+                stored_password = user[4]  # Assuming password is at index 4
+                hashed_input_password = hash_password(password)
+                
+                st.write(f"Debug - Stored Password Hash: {stored_password}")
+                st.write(f"Debug - Input Password Hash: {hashed_input_password}")
+                
+                if hashed_input_password == stored_password:
+                    # Successful login
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    
+                    # Determine user role
+                    role = user[5] if len(user) > 5 else 'user'
+                    
+                    # Save session
+                    save_session(email, 'browse_cars')
+                    
+                    # Navigate based on role
+                    if role == 'admin':
+                        st.session_state.current_page = 'admin_panel'
+                    else:
+                        st.session_state.current_page = 'browse_cars'
+                    
+                    st.success('Login successful!')
+                    st.experimental_rerun()
                 else:
-                    st.session_state.current_page = 'browse_cars'
+                    st.error("Invalid password")
                 
-                st.success('Login successful!')
-                st.experimental_rerun()
-            else:
-                st.error("Invalid credentials. Please try again.")
+                conn.close()
+            
+            except sqlite3.Error as e:
+                st.error(f"Database error: {e}")
+                print(f"Database error: {e}")
+            except Exception as e:
+                st.error(f"An unexpected error occurred: {e}")
+                print(f"Unexpected error: {e}")
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
