@@ -1725,48 +1725,47 @@ def main():
     else:
         update_bookings_table()
     
-    # Initialize session state variables with persistent keys
+    # Persistent login state initialization
     if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
+        st.session_state.logged_in = False
     
     if 'user_email' not in st.session_state:
-        st.session_state['user_email'] = None
+        st.session_state.user_email = None
     
     if 'current_page' not in st.session_state:
-        st.session_state['current_page'] = 'welcome'
+        st.session_state.current_page = 'welcome'
     
-    # Verify login state
-    if st.session_state['logged_in']:
+    # Verify login persistence
+    if st.session_state.logged_in:
         try:
-            # Verify user exists in database
             conn = sqlite3.connect('car_rental.db')
             c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE email = ?', (st.session_state['user_email'],))
+            c.execute('SELECT * FROM users WHERE email = ?', (st.session_state.user_email,))
             user = c.fetchone()
             conn.close()
             
-            # If user doesn't exist, log out
+            # If no user found, force logout
             if not user:
-                st.session_state['logged_in'] = False
-                st.session_state['user_email'] = None
-                st.session_state['current_page'] = 'welcome'
+                st.session_state.logged_in = False
+                st.session_state.user_email = None
+                st.session_state.current_page = 'welcome'
         except Exception as e:
             print(f"Login verification error: {e}")
     
-    # Sidebar navigation for logged-in users
-    if st.session_state['logged_in']:
+    # Sidebar for logged-in users
+    if st.session_state.logged_in:
         with st.sidebar:
             st.markdown("### My Account")
-            st.write(f"Welcome, {st.session_state['user_email']}")
+            st.write(f"Welcome, {st.session_state.user_email}")
             
             # Get user role
-            role = get_user_role(st.session_state['user_email'])
+            role = get_user_role(st.session_state.user_email)
             
-            # Show admin panel button for admin users
+            # Admin panel for admin users
             if role == 'admin':
                 st.markdown("### Admin Functions")
                 if st.button("🔧 Admin Panel"):
-                    st.session_state['current_page'] = 'admin_panel'
+                    st.session_state.current_page = 'admin_panel'
                 st.markdown("---")
             
             # Navigation buttons
@@ -1780,83 +1779,71 @@ def main():
             
             for label, page in nav_items:
                 if st.button(label):
-                    st.session_state['current_page'] = page
+                    st.session_state.current_page = page
             
             # Notifications
-            unread_count = get_unread_notifications_count(st.session_state['user_email'])
+            unread_count = get_unread_notifications_count(st.session_state.user_email)
             notification_label = f"🔔 Notifications ({unread_count})" if unread_count > 0 else "🔔 Notifications"
             if st.button(notification_label):
-                st.session_state['current_page'] = 'notifications'
+                st.session_state.current_page = 'notifications'
             
             st.markdown("---")
             
             # Logout button
             if st.button("👋 Logout"):
-                st.session_state['logged_in'] = False
-                st.session_state['user_email'] = None
-                st.session_state['current_page'] = 'welcome'
+                st.session_state.logged_in = False
+                st.session_state.user_email = None
+                st.session_state.current_page = 'welcome'
                 st.experimental_rerun()
     
     # Page routing
-    current_page = st.session_state['current_page']
+    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup']:
+        st.session_state.current_page = 'welcome'
     
-    # Authentication-required pages
-    auth_pages = [
+    # Page rendering
+    page_handlers = {
+        'welcome': welcome_page,
+        'login': login_page,
+        'signup': signup_page,
+        'browse_cars': browse_cars_page,
+        'admin_panel': admin_panel,
+        'list_your_car': list_your_car_page,
+        'my_listings': my_listings_page,
+        'notifications': notifications_page,
+        'my_bookings': my_bookings_page,
+        'owner_bookings': owner_bookings_page,
+        'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') else browse_cars_page,
+        'book_car': book_car_page
+    }
+    
+    # Authentication check for protected pages
+    protected_pages = [
         'list_your_car', 'my_listings', 'notifications', 
-        'book_car', 'my_bookings', 'owner_bookings', 'admin_panel'
+        'my_bookings', 'owner_bookings', 'book_car', 'admin_panel'
     ]
     
-    # Page rendering logic
-    try:
-        if current_page == 'welcome':
-            welcome_page()
-        elif current_page == 'login':
-            login_page()
-        elif current_page == 'signup':
-            signup_page()
-        elif current_page in auth_pages:
-            # Check authentication for protected pages
-            if not st.session_state['logged_in']:
-                st.warning("Please log in to access this page")
-                st.session_state['current_page'] = 'login'
-                login_page()
-            else:
-                # Admin page special check
-                if current_page == 'admin_panel':
-                    if get_user_role(st.session_state['user_email']) != 'admin':
-                        st.error("Access denied. Admin privileges required.")
-                        st.session_state['current_page'] = 'browse_cars'
-                        browse_cars_page()
-                    else:
-                        admin_panel()
-                # Other authenticated pages
-                elif current_page == 'list_your_car':
-                    list_your_car_page()
-                elif current_page == 'my_listings':
-                    my_listings_page()
-                elif current_page == 'notifications':
-                    notifications_page()
-                elif current_page == 'book_car':
-                    book_car_page()
-                elif current_page == 'my_bookings':
-                    my_bookings_page()
-                elif current_page == 'owner_bookings':
-                    owner_bookings_page()
-        else:
-            # Default public pages
-            if current_page == 'browse_cars':
-                browse_cars_page()
-            elif current_page == 'car_details':
-                if st.session_state.get('selected_car'):
-                    show_car_details(st.session_state['selected_car'])
-                else:
-                    browse_cars_page()
-            else:
-                welcome_page()
+    # Render the current page
+    current_page = st.session_state.current_page
     
+    if current_page in protected_pages:
+        if st.session_state.logged_in:
+            # Special handling for admin panel
+            if current_page == 'admin_panel' and get_user_role(st.session_state.user_email) != 'admin':
+                st.error("Access denied. Admin privileges required.")
+                st.session_state.current_page = 'browse_cars'
+                browse_cars_page()
+            else:
+                page_handlers.get(current_page, welcome_page)()
+        else:
+            st.warning("Please log in to access this page")
+            st.session_state.current_page = 'login'
+            login_page()
+    else:
+        page_handlers.get(current_page, welcome_page)()
+
+if __name__ == '__main__':
+    try:
+        main()
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         print(f"Error details: {str(e)}")
-
-if __name__ == '__main__':
-    main()
