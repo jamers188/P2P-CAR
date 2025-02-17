@@ -9,161 +9,175 @@ import io
 import base64
 import json
 
-
-SESSION_FILE = "session.json"
-
-def save_session(email, page):
-    """Save login session and current page to a file."""
-    session_data = {
-        "logged_in": True,
-        "user_email": email,
-        "current_page": page,
-        "timestamp": time.time()  # Add timestamp for session expiry
-    }
-    try:
-        with open(SESSION_FILE, "w") as f:
-            json.dump(session_data, f)
-    except Exception as e:
-        print(f"Error saving session: {e}")
-
-def load_session():
-    """Load session from a file and provide default values if missing."""
-    try:
-        if os.path.exists(SESSION_FILE):
-            with open(SESSION_FILE, "r") as f:
-                session_data = json.load(f)
-                
-            # Check if session is expired (24 hours)
-            if time.time() - session_data.get("timestamp", 0) > 86400:
-                os.remove(SESSION_FILE)
-                return {"logged_in": False, "user_email": None, "current_page": "welcome"}
-                
-            return {
-                "logged_in": session_data.get("logged_in", False),
-                "user_email": session_data.get("user_email", None),
-                "current_page": session_data.get("current_page", "browse_cars")
-            }
-    except Exception as e:
-        print(f"Error loading session: {e}")
-    
-    return {"logged_in": False, "user_email": None, "current_page": "welcome"}
-
-
-
+# Page config and custom CSS
+st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
 st.markdown("""
     <style>
-        [data-testid="stBaseButton-secondary"] svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
-        /* Reset all SVG sizing */
-        svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-        
-        /* Target Streamlit specific elements */
-        .st-emotion-cache-ocsh0s svg,
-        .st-emotion-cache-* svg,
-        [data-testid*="stMarkdownContainer"] svg,
-        [data-testid*="baseButton"] svg,
-        button svg,
-        .element-container svg {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
+        /* Root Variables for Theming */
+        :root {
+            --primary-color: #4B0082;
+            --secondary-color: #6A0DAD;
+            --background-color: #F4F4F8;
+            --text-color: #333;
         }
 
-        /* Force icon sizing in all contexts */
-        *[class*="st-"] svg,
-        *[data-testid*="st"] svg {
-            width: 16px !important;
-            height: 16px !important;
+        /* Global Styles */
+        .stApp {
+            background-color: var(--background-color);
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* Button specific styling */
-        button[data-testid="stBaseButton-secondary"] {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            padding: 8px 16px !important;
-            height: 36px !important;
-            background-color: transparent !important;
-            border: 1px solid #4B0082 !important;
-            color: #4B0082 !important;
-            border-radius: 4px !important;
-        }
-
-        /* Specific overrides for button icons */
-        button[data-testid="stBaseButton-secondary"] svg {
-            width: 16px !important;
-            height: 16px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-        }
-
-        /* Global button styles */
-        .stButton > button {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
+        /* Button Styling */
+        .stButton>button {
             width: 100%;
-            border-radius: 4px;
-            height: 36px;
-            background-color: #4B0082;
+            border-radius: 20px;
+            height: 3em;
+            background-color: var(--primary-color);
             color: white;
             border: none;
+            margin: 5px 0;
             transition: all 0.3s ease;
-            font-weight: 500;
-            padding: 0 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-
-        .stButton > button:hover {
-            background-color: #6A0DAD;
-            transform: translateY(-2px);
+        
+        .stButton>button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-
-        /* Icon containers */
-        .icon-container {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 16px !important;
-            height: 16px !important;
+        
+        /* Layout */
+        .css-1d391kg {
+            padding: 2rem 1rem;
+        }
+        
+        /* Input Styling */
+        input[type="text"], input[type="password"] {
+            border-radius: 20px;
+            padding: 10px 15px;
+            border: 2px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .stTextInput>div>div>input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 10px rgba(106,13,173,0.2);
+        }
+        
+        /* Headings */
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            padding: 1rem 0;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        
+        /* Card Styling */
+        .car-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            border: 1px solid #e1e1e8;
+        }
+        
+        .car-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        /* Message Styling */
+        .success-message {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border-left: 4px solid #2E7D32;
+        }
+        
+        .error-message {
+            background-color: #FFEBEE;
+            color: #C62828;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border-left: 4px solid #C62828;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+        }
+        
+        .status-badge.pending {
+            background-color: #FFC107;
+            color: #333;
+        }
+        
+        .status-badge.approved {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .status-badge.rejected {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        /* Admin Review Card */
+        .admin-review-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 1.5rem 0;
+            border: 1px solid #e1e1e8;
+        }
+        
+        /* Image Gallery */
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .image-gallery img {
+            width: 100%;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        
+        .image-gallery img:hover {
+            transform: scale(1.05);
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Apply additional icon-specific fixes
-st.markdown("""
-    <style>
-        /* Override any dynamic icon sizing */
-        @media screen {
-            svg {
-                width: 16px !important;
-                height: 16px !important;
-            }
-        }
-    </style>
-""", unsafe_allow_html=True)
-# Load previous session if it exists
-session_data = load_session()
-
-st.session_state.logged_in = session_data.get("logged_in", False)
-st.session_state.user_email = session_data.get("user_email", None)
-st.session_state.current_page = session_data.get("current_page", "welcome")
-
+# Initialize session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = None
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'welcome'
+if 'selected_car' not in st.session_state:
+    st.session_state.selected_car = None
 
 # Database setup
 def setup_database():
@@ -383,19 +397,16 @@ def create_user(full_name, email, phone, password, role='user'):
 def verify_user(email, password):
     """Verify user credentials"""
     try:
+        # Special case for admin
+        if email == "admin@luxuryrentals.com" and password == "admin123":
+            return True
+            
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-        
-        # Hash the password for comparison
-        hashed_password = hash_password(password)
-        
-        # Check credentials
-        c.execute('SELECT password, role FROM users WHERE email = ?', (email,))
+        c.execute('SELECT password FROM users WHERE email = ?', (email,))
         result = c.fetchone()
         
-        if result and result[0] == hashed_password:
-            # Save session immediately upon successful verification
-            save_session(email, 'browse_cars' if result[1] != 'admin' else 'admin_panel')
+        if result and result[0] == hash_password(password):
             return True
         return False
     except sqlite3.Error as e:
@@ -406,6 +417,7 @@ def verify_user(email, password):
             conn.close()
 
 def get_user_role(email):
+    """Get user's role from database"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -418,6 +430,7 @@ def get_user_role(email):
     finally:
         if 'conn' in locals():
             conn.close()
+
 # Notification functions
 def create_notification(user_email, message, type):
     """Create a new notification"""
@@ -562,72 +575,50 @@ def welcome_page():
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Wrap buttons in containers for better icon handling
-        st.markdown("""
-            <div class="button-container">
-                <div class="icon-container">
-                    <svg width="16" height="16" viewBox="0 0 16 16"></svg>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
         if st.button('Login', key='welcome_login'):
             st.session_state.current_page = 'login'
-            st.rerun()
-            
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
         if st.button('Create Account', key='welcome_signup'):
             st.session_state.current_page = 'signup'
-            st.rerun()
-            
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
         if st.button('Browse Cars', key='welcome_browse'):
             st.session_state.current_page = 'browse_cars'
-            st.rerun()
+
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
-        st.rerun()
     
     st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email', key='login_email')
-        password = st.text_input('Password', type='password', key='login_password')
-        
+        email = st.text_input('Email')
+        password = st.text_input('Password', type='password')
+
+
+    
         if st.button('Login', key='login_submit'):
-            if not email or not password:
-                st.error('Please enter both email and password')
-            elif verify_user(email, password):
-                # Get user role
-                role = get_user_role(email)
-                
-                # Update session state
+            if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                
-                # Show success message
-                st.success('Login successful!')
-                
-                # Set next page based on role
+            
+                # Get user role
+                role = get_user_role(email)
+            
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
                 else:
                     st.session_state.current_page = 'browse_cars'
-                
-                # Force a rerun to update the UI
-                time.sleep(1)
-                st.rerun()
+                st.success('Login successful!')
+                st.experimental_rerun()  # This will restart the app in the new page
             else:
-                st.error('Invalid email or password')
+                st.error('Invalid credentials')
+
+        
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
-            st.rerun()
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
@@ -1734,16 +1725,15 @@ def main():
     else:
         update_bookings_table()
     
-    # Load saved session
-    session_data = load_session()
-    
-    # Initialize session state
+    # Persistent login state initialization
     if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = session_data["logged_in"]
+        st.session_state.logged_in = False
+    
     if 'user_email' not in st.session_state:
-        st.session_state.user_email = session_data["user_email"]
+        st.session_state.user_email = None
+    
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = session_data["current_page"]
+        st.session_state.current_page = 'welcome'
     
     # Verify login persistence
     if st.session_state.logged_in:
@@ -1798,30 +1788,17 @@ def main():
                 st.session_state.current_page = 'notifications'
             
             st.markdown("---")
-
-
-
+            
+            # Logout button
             if st.button("👋 Logout"):
-
-                if os.path.exists(SESSION_FILE):
-                    os.remove(SESSION_FILE)
-
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
-                st.session_state.current_page = "welcome"
-                st.success("Logged out successfully!")
+                st.session_state.current_page = 'welcome'
                 st.experimental_rerun()
-
-           
-             
-          
-    # Page routing
-    if not st.session_state.logged_in:
-        st.session_state.current_page = 'welcome'
-    else:
-        save_session(st.session_state.user_email, st.session_state.current_page)  # Save session on page change
-
     
+    # Page routing
+    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup']:
+        st.session_state.current_page = 'welcome'
     
     # Page rendering
     page_handlers = {
@@ -1870,3 +1847,5 @@ if __name__ == '__main__':
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         print(f"Error details: {str(e)}")
+
+
