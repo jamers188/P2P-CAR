@@ -328,7 +328,7 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
-       admin_email = 'admin@luxuryrentals.com'
+        admin_email = 'admin@luxuryrentals.com'
         admin_password = hash_password('admin123')
         
         try:
