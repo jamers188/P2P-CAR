@@ -76,7 +76,7 @@ st.markdown("""
         
         /* Layout */
         .css-1d391kg {
-            padding: 2rem 1rem;
+            padding: 2px 1px;
         }
         
         /* Input Styling */
@@ -96,7 +96,7 @@ st.markdown("""
         h1 {
             color: var(--primary-color);
             text-align: center;
-            padding: 1rem 0;
+            padding: 1px 0;
             font-weight: 700;
             letter-spacing: -1px;
         }
@@ -105,9 +105,9 @@ st.markdown("""
         .car-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1rem;
+            padding: 1px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1rem 0;
+            margin: 1px 0;
             transition: all 0.3s ease;
             border: 1px solid #e1e1e8;
         }
@@ -121,7 +121,7 @@ st.markdown("""
         .success-message {
             background-color: #E8F5E9;
             color: #2E7D32;
-            padding: 1rem;
+            padding: 1px;
             border-radius: 10px;
             margin: 1rem 0;
             border-left: 4px solid #2E7D32;
@@ -130,7 +130,7 @@ st.markdown("""
         .error-message {
             background-color: #FFEBEE;
             color: #C62828;
-            padding: 1rem;
+            padding: 1px;
             border-radius: 10px;
             margin: 1rem 0;
             border-left: 4px solid #C62828;
@@ -138,9 +138,9 @@ st.markdown("""
         
         /* Status Badge */
         .status-badge {
-            padding: 0.5rem 1rem;
+            padding: 0.5px 1px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.8px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -166,9 +166,9 @@ st.markdown("""
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1.5rem;
+            padding: 1.5px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5rem 0;
+            margin: 1.5px 0;
             border: 1px solid #e1e1e8;
         }
         
@@ -176,8 +176,8 @@ st.markdown("""
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
+            gap: 1px;
+            margin: 1px 0;
         }
         
         .image-gallery img {
@@ -417,15 +417,13 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials and save session"""
     try:
-        # Special case for admin
-        if email == "admin@luxuryrentals.com" and password == "admin123":
-            save_session(email, 'admin_panel')
-            return True
-            
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
+        
+        # Special case for admin
+        if email == "admin@luxuryrentals.com" and password == "admin123":
+            return True
         
         # Hash the password
         hashed_password = hashlib.sha256(password.encode()).hexdigest()
@@ -435,7 +433,6 @@ def verify_user(email, password):
         result = c.fetchone()
         
         if result and result[0] == hashed_password:
-            save_session(email, 'browse_cars')
             return True
         return False
     except sqlite3.Error as e:
@@ -445,9 +442,7 @@ def verify_user(email, password):
         if 'conn' in locals():
             conn.close()
 
-
 def get_user_role(email):
-    """Get user's role from database"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -460,7 +455,6 @@ def get_user_role(email):
     finally:
         if 'conn' in locals():
             conn.close()
-
 # Notification functions
 def create_notification(user_email, message, type):
     """Create a new notification"""
