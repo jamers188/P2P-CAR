@@ -807,7 +807,7 @@ def list_your_car_page():
                     is_valid, message = validate_image(uploaded_file)
                     if is_valid:
                         image = Image.open(uploaded_file)
-                        st.image(image, caption=f"Image {idx+1}", use_column_width=True)
+                        st.image(image, caption=f"Image {idx+1}", use_container_width=True)
                     else:
                         st.error(message)
             st.markdown("</div>", unsafe_allow_html=True)
@@ -952,7 +952,7 @@ def my_listings_page():
                             st.image(
                                 f"data:image/jpeg;base64,{img_data}",
                                 caption=f"Image {idx+1}",
-                                use_column_width=True
+                                use_container_width=True
                             )
                     st.markdown("</div>", unsafe_allow_html=True)
                 
@@ -1104,7 +1104,7 @@ def show_pending_listings():
                             st.image(
                                 f"data:image/jpeg;base64,{img[2]}", 
                                 caption=f"Image {idx+1}",
-                                use_column_width=True
+                                use_container_width=True
                             )
                     st.markdown("</div>", unsafe_allow_html=True)
                 
@@ -1195,7 +1195,7 @@ def show_listings_by_status(status):
                             st.image(
                                 f"data:image/jpeg;base64,{img[2]}", 
                                 caption=f"Image {idx+1}",
-                                use_column_width=True
+                                use_container_width=True
                             )
                     st.markdown("</div>", unsafe_allow_html=True)
     
@@ -1258,7 +1258,7 @@ def show_car_details(car):
                 st.image(
                     f"data:image/jpeg;base64,{img_data}", 
                     caption=f"Image {idx+1}",
-                    use_container_width=True  # Updated from use_column_width
+                    use_container_width=True  # Updated from use_container_width
                 )
         st.markdown("</div>", unsafe_allow_html=True)
     
