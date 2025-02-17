@@ -595,44 +595,29 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 
 # Page Components
 def welcome_page():
-    # Ensure session state is initialized
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
-
     st.markdown("<h1>🚗 Luxury Car Rentals</h1>", unsafe_allow_html=True)
     
-    st.markdown("""
-        <div style='text-align: center; padding: 2rem;'>
-            <h2 style='color: #4B0082;'>Experience Luxury on Wheels</h2>
-            <p style='font-size: 1.2rem; color: #666;'>Discover our exclusive collection of premium vehicles</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Create centered buttons with full width
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Login Button
         if st.button('Login', key='welcome_login', use_container_width=True):
             st.session_state.current_page = 'login'
-            # Force page refresh
-            st.rerun()
+            st.experimental_rerun()
         
-        # Add spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        # Create Account Button
         if st.button('Create Account', key='welcome_signup', use_container_width=True):
             st.session_state.current_page = 'signup'
-            st.rerun()
+            st.experimental_rerun()
         
-        # Add spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        # Browse Cars Button
         if st.button('Browse Cars', key='welcome_browse', use_container_width=True):
-            st.session_state.current_page = 'browse_cars'
-            st.rerun()
-            
+            if st.session_state.logged_in:
+                st.session_state.current_page = 'browse_cars'
+            else:
+                st.session_state.current_page = 'browse_cars'
+            st.experimental_rerun()
+
 def login_page():
     st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
     
@@ -1835,13 +1820,13 @@ def main():
             user = c.fetchone()
             conn.close()
             
-            # If no user found, force logout
             if not user:
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = 'welcome'
         except Exception as e:
             print(f"Login verification error: {e}")
+
     
     # Sidebar for logged-in users
     if st.session_state.logged_in:
@@ -1896,11 +1881,21 @@ def main():
            
              
           
-    # Page routing
-    if not st.session_state.logged_in:
-        st.session_state.current_page = 'welcome'
+    # Page routing with proper state management
+    if st.session_state.logged_in:
+        # Show protected pages
+        page_handlers.get(st.session_state.current_page, browse_cars_page)()
     else:
-        save_session(st.session_state.user_email, st.session_state.current_page)  # Save session on page change
+        # Show public pages
+        if st.session_state.current_page == 'welcome':
+            welcome_page()
+        elif st.session_state.current_page == 'login':
+            login_page()
+        elif st.session_state.current_page == 'signup':
+            signup_page()
+        else:
+            st.session_state.current_page = 'welcome'
+            welcome_page()
 
     
     
