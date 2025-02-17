@@ -14,16 +14,9 @@ SESSION_FILE = "session.json"
 
 def save_session(email, page):
     """Save login session and current page to a file."""
-    try:
-        session_data = {
-            "logged_in": True, 
-            "user_email": email, 
-            "current_page": page
-        }
-        with open(SESSION_FILE, "w") as f:
-            json.dump(session_data, f)
-    except Exception as e:
-        st.error(f"Error saving session: {e}")
+    session_data = {"logged_in": True, "user_email": email, "current_page": page}
+    with open(SESSION_FILE, "w") as f:
+        json.dump(session_data, f)
 
 def load_session():
     """Load session from a file and provide default values if missing."""
@@ -219,6 +212,7 @@ def setup_database():
         c = conn.cursor()
 
         
+        # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -230,8 +224,6 @@ def setup_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
-
 
         # Create car_listings table
         c.execute('''
@@ -328,31 +320,31 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
-        admin_email = 'admin@luxuryrentals.com'
+        # Create admin user
         admin_password = hash_password('admin123')
-        
-        try:
-            c.execute('''
-                INSERT INTO users (full_name, email, phone, password, role)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (
-                'Admin User',
-                admin_email,
-                '+971500000000',
-                admin_password,
-                'admin'
-            ))
-            conn.commit()
-            print(f"Admin user created with email: {admin_email}")
-        except sqlite3.IntegrityError:
-            print("Admin user might already exist")
+        c.execute('''
+            INSERT INTO users (full_name, email, phone, password, role)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            'Admin User',
+            'admin@luxuryrentals.com',
+            '+971500000000',
+            admin_password,
+            'admin'
+        ))
 
-        conn.close()
+       
+
+        conn.commit()
         print("Database initialized successfully")
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         raise
+    finally:
+        if conn:
+            conn.close()
+
 # Sample car data
 cars_data = {
     'Luxury': [
@@ -425,28 +417,22 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials with improved error handling"""
-    try:
-        # Special case for admin
-        if email == "admin@luxuryrentals.com" and password == "admin123":
-            return True
-            
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
-        c.execute('SELECT password FROM users WHERE email = ?', (email,))
-        result = c.fetchone()
-        conn.close()
-        
-        # Check if user exists and password matches
-        if result and result[0] == hash_password(password):
-            return True
-        
-        print(f"Login failed for {email}")
-        return False
-    except sqlite3.Error as e:
-        print(f"Database error during login: {e}")
-        return False
-        
+    """Verify user credentials and save session"""
+    if email == "admin@luxuryrentals.com" and password == "admin123":
+        save_session(email)
+        return True
+
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    c.execute('SELECT password FROM users WHERE email = ?', (email,))
+    result = c.fetchone()
+    conn.close()
+
+    if result and result[0] == hash_password(password):
+        save_session(email)
+        return True
+    return False
+
 def get_user_role(email):
     """Get user's role from database"""
     try:
@@ -597,101 +583,59 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 def welcome_page():
     st.markdown("<h1>🚗 Luxury Car Rentals</h1>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button('Login', key='welcome_login', use_container_width=True):
-            st.session_state.current_page = 'login'
-            st.experimental_rerun()
-        
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
-        if st.button('Create Account', key='welcome_signup', use_container_width=True):
-            st.session_state.current_page = 'signup'
-            st.experimental_rerun()
-        
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
-        if st.button('Browse Cars', key='welcome_browse', use_container_width=True):
-            if st.session_state.logged_in:
-                st.session_state.current_page = 'browse_cars'
-            else:
-                st.session_state.current_page = 'browse_cars'
-            st.experimental_rerun()
-
-def login_page():
-    st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
+    st.markdown("""
+        <div style='text-align: center; padding: 2rem;'>
+            <h2 style='color: #4B0082;'>Experience Luxury on Wheels</h2>
+            <p style='font-size: 1.2rem; color: #666;'>Discover our exclusive collection of premium vehicles</p>
+        </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Add a hidden header to force Streamlit to rerun
-        st.markdown("### Login Diagnostics")
+        if st.button('Login', key='welcome_login'):
+            st.session_state.current_page = 'login'
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Create Account', key='welcome_signup'):
+            st.session_state.current_page = 'signup'
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Browse Cars', key='welcome_browse'):
+            st.session_state.current_page = 'browse_cars'
+
+def login_page():
+    if st.button('← Back to Welcome', key='login_back'):
+        st.session_state.current_page = 'welcome'
+    
+    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        email = st.text_input('Email')
+        password = st.text_input('Password', type='password')
         
-        email = st.text_input('Email', key='login_email_debug')
-        password = st.text_input('Password', type='password', key='login_password_debug')
-        
-        # Debug: Print out current state before login attempt
-        st.write(f"Debug - Current Database Path: {os.path.abspath('car_rental.db')}")
-        st.write(f"Debug - Database Exists: {os.path.exists('car_rental.db')}")
-        
-        if st.button('Login', key='login_submit_debug'):
-            st.write("Login button clicked")
-            
-            # Comprehensive logging
-            try:
-                # Verify database connection
-                if not os.path.exists('car_rental.db'):
-                    st.error("Database file does not exist!")
-                    return
+        if st.button('Login', key='login_submit'):
+            if verify_user(email, password):
+                # Get user role
+                role = get_user_role(email)
                 
-                conn = sqlite3.connect('car_rental.db')
-                c = conn.cursor()
+                # Set login state
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
                 
-                # Debug: Check table structure
-                c.execute("PRAGMA table_info(users)")
-                columns = c.fetchall()
-                st.write("User Table Columns:")
-                for col in columns:
-                    st.write(col)
-                
-                # Hashed password for verification
-                hashed_password = hash_password(password)
-                
-                # Comprehensive query
-                c.execute('SELECT * FROM users WHERE email = ?', (email,))
-                user = c.fetchone()
-                
-                st.write("Debug - User Query Result:")
-                st.write(f"User found: {user is not None}")
-                
-                if user:
-                    # Detailed password checking
-                    st.write(f"Stored Hashed Password: {user[4]}")
-                    st.write(f"Input Hashed Password: {hashed_password}")
-                    
-                    if user[4] == hashed_password:
-                        st.success("Password Matched!")
-                        
-                        # Manual session state setting
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = email
-                        st.session_state.current_page = 'browse_cars'
-                        
-                        # Experimental rerun to update page
-                        st.experimental_rerun()
-                    else:
-                        st.error("Password does not match")
+                # Determine next page based on role
+                if role == 'admin':
+                    st.session_state.current_page = 'admin_panel'
                 else:
-                    st.error(f"No user found with email: {email}")
+                    st.session_state.current_page = 'browse_cars'
                 
-                conn.close()
-            
-            except Exception as e:
-                st.error(f"Login Error: {e}")
-                # Print full traceback
-                import traceback
-                st.write(traceback.format_exc())
-            
-            
+                st.success('Login successful!')
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials. Please try again.")
+        
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Forgot Password?', key='forgot_password'):
+            st.session_state.current_page = 'reset_password'
+
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -712,15 +656,12 @@ def signup_page():
             elif not all([full_name, email, phone, password]):
                 st.error('Please fill in all fields')
             else:
-                try:
-                    if create_user(full_name, email, phone, password):
-                        st.success('Account created successfully!')
-                        st.session_state.current_page = 'login'
-                        st.experimental_rerun()
-                    else:
-                        st.error('Email already exists or account creation failed')
-                except Exception as e:
-                    st.error(f"Error creating account: {e}")
+                if create_user(full_name, email, phone, password):
+                    st.success('Account created successfully!')
+                    st.session_state.current_page = 'login'
+                else:
+                    st.error('Email already exists')
+
 def browse_cars_page():
     col1, col2 = st.columns([9, 1])
     with col2:
@@ -1800,16 +1741,15 @@ def main():
     else:
         update_bookings_table()
     
-    # Initialize session state
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
+    # Persistent login state initialization
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    
     if 'user_email' not in st.session_state:
         st.session_state.user_email = None
-
-
- 
+    
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 'welcome'
     
     # Verify login persistence
     if st.session_state.logged_in:
@@ -1820,13 +1760,13 @@ def main():
             user = c.fetchone()
             conn.close()
             
+            # If no user found, force logout
             if not user:
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = 'welcome'
         except Exception as e:
             print(f"Login verification error: {e}")
-
     
     # Sidebar for logged-in users
     if st.session_state.logged_in:
@@ -1881,21 +1821,11 @@ def main():
            
              
           
-    # Page routing with proper state management
-    if st.session_state.logged_in:
-        # Show protected pages
-        page_handlers.get(st.session_state.current_page, browse_cars_page)()
+    # Page routing
+    if not st.session_state.logged_in:
+        st.session_state.current_page = 'welcome'
     else:
-        # Show public pages
-        if st.session_state.current_page == 'welcome':
-            welcome_page()
-        elif st.session_state.current_page == 'login':
-            login_page()
-        elif st.session_state.current_page == 'signup':
-            signup_page()
-        else:
-            st.session_state.current_page = 'welcome'
-            welcome_page()
+        save_session(st.session_state.user_email, st.session_state.current_page)  # Save session on page change
 
     
     
