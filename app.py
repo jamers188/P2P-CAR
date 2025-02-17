@@ -14,13 +14,16 @@ SESSION_FILE = "session.json"
 
 def save_session(email, page):
     """Save login session and current page to a file."""
-    session_data = {
-        "logged_in": True, 
-        "user_email": email, 
-        "current_page": page
-    }
-    with open(SESSION_FILE, "w") as f:
-        json.dump(session_data, f)
+    try:
+        session_data = {
+            "logged_in": True, 
+            "user_email": email, 
+            "current_page": page
+        }
+        with open(SESSION_FILE, "w") as f:
+            json.dump(session_data, f)
+    except Exception as e:
+        st.error(f"Error saving session: {e}")
 
 def load_session():
     """Load session from a file and provide default values if missing."""
@@ -622,47 +625,22 @@ def login_page():
         email = st.text_input('Email', key='login_email')
         password = st.text_input('Password', type='password', key='login_password')
         
-        # Add print statements for debugging
-        st.write(f"Debug - Email: {email}")
-        st.write(f"Debug - Password: {'*' * len(password) if password else 'Empty'}")
-        
         if st.button('Login', key='login_submit'):
-            st.write("Login button clicked")
-            
-            # Comprehensive input validation
-            if not email:
-                st.error("Please enter an email address")
+            # Basic input validation
+            if not email or not password:
+                st.error("Please enter both email and password")
                 return
-            
-            if not password:
-                st.error("Please enter a password")
-                return
-            
-            # Print credentials for debugging
-            print(f"Attempting login with email: {email}")
             
             try:
-                # Verify user credentials
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
                 
-                # Check user exists
-                c.execute('SELECT * FROM users WHERE email = ?', (email,))
+                # Verify user credentials
+                c.execute('SELECT * FROM users WHERE email = ? AND password = ?', 
+                          (email, hash_password(password)))
                 user = c.fetchone()
                 
-                if not user:
-                    st.error(f"No user found with email: {email}")
-                    conn.close()
-                    return
-                
-                # Verify password
-                stored_password = user[4]  # Assuming password is at index 4
-                hashed_input_password = hash_password(password)
-                
-                st.write(f"Debug - Stored Password Hash: {stored_password}")
-                st.write(f"Debug - Input Password Hash: {hashed_input_password}")
-                
-                if hashed_input_password == stored_password:
+                if user:
                     # Successful login
                     st.session_state.logged_in = True
                     st.session_state.user_email = email
@@ -682,16 +660,14 @@ def login_page():
                     st.success('Login successful!')
                     st.experimental_rerun()
                 else:
-                    st.error("Invalid password")
+                    st.error("Invalid email or password")
                 
                 conn.close()
             
             except sqlite3.Error as e:
                 st.error(f"Database error: {e}")
-                print(f"Database error: {e}")
             except Exception as e:
                 st.error(f"An unexpected error occurred: {e}")
-                print(f"Unexpected error: {e}")
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
@@ -717,12 +693,15 @@ def signup_page():
             elif not all([full_name, email, phone, password]):
                 st.error('Please fill in all fields')
             else:
-                if create_user(full_name, email, phone, password):
-                    st.success('Account created successfully!')
-                    st.session_state.current_page = 'login'
-                else:
-                    st.error('Email already exists')
-
+                try:
+                    if create_user(full_name, email, phone, password):
+                        st.success('Account created successfully!')
+                        st.session_state.current_page = 'login'
+                        st.experimental_rerun()
+                    else:
+                        st.error('Email already exists or account creation failed')
+                except Exception as e:
+                    st.error(f"Error creating account: {e}")
 def browse_cars_page():
     col1, col2 = st.columns([9, 1])
     with col2:
@@ -1802,7 +1781,7 @@ def main():
     else:
         update_bookings_table()
     
-    # Persistent login state initialization
+    # Ensure all required session state variables are initialized
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     
@@ -1811,6 +1790,8 @@ def main():
     
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 'welcome'
+    
+ 
     
     # Verify login persistence
     if st.session_state.logged_in:
