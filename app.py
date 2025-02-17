@@ -55,8 +55,8 @@ def load_session():
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 st.markdown("""
     <style>
-        /* Force SVG sizing */
-        button svg, [class*="st-"] svg, [data-testid*="st"] svg {
+        /* SVG Sizing Fixes */
+        svg {
             width: 20px !important;
             height: 20px !important;
             min-width: 20px !important;
@@ -64,8 +64,34 @@ st.markdown("""
             max-width: 20px !important;
             max-height: 20px !important;
         }
+        
+        /* Force correct SVG sizing in buttons */
+        button svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+        }
+        
+        /* Ensure SVGs in specific Streamlit elements are sized correctly */
+        [data-testid*="stMarkdownContainer"] svg,
+        .element-container svg,
+        .stMarkdown svg,
+        [data-testid*="baseButton-secondary"] svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+            box-sizing: content-box !important;
+        }
     </style>
 """, unsafe_allow_html=True)
+
+
 st.markdown("""
     <style>
         /* Root Variables */
@@ -74,17 +100,6 @@ st.markdown("""
             --secondary-color: #6A0DAD;
             --background-color: #F4F4F8;
             --text-color: #333;
-        }
-
-        /* All SVG Icons */
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-
-        svg {
-            width: 20px !important;
-            height: 20px !important;
-            box-sizing: content-box !important;
         }
 
         /* Global Styles */
@@ -121,8 +136,8 @@ st.markdown("""
         }
 
         /* Back Button Specific */
-        button[data-testid="baseButton-secondary"] {
-            display: flex !important;
+        [data-testid="baseButton-secondary"] {
+            display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
             padding: 8px 16px !important;
@@ -133,7 +148,7 @@ st.markdown("""
             color: var(--primary-color) !important;
         }
 
-        /* Rest of your CSS stays EXACTLY the same from here down */
+        
         .css-1d391kg {
             padding: 2rem 1rem;
         }
