@@ -429,20 +429,33 @@ def create_user(full_name, email, phone, password, role='user'):
 
 def verify_user(email, password):
     """Verify user credentials and save session"""
-    if email == "admin@luxuryrentals.com" and password == "admin123":
-        save_session(email)
-        return True
+    try:
+        # Special case for admin
+        if email == "admin@luxuryrentals.com" and password == "admin123":
+            save_session(email, 'admin_panel')
+            return True
+            
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Hash the password
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Check credentials
+        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        result = c.fetchone()
+        
+        if result and result[0] == hashed_password:
+            save_session(email, 'browse_cars')
+            return True
+        return False
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    c.execute('SELECT password FROM users WHERE email = ?', (email,))
-    result = c.fetchone()
-    conn.close()
-
-    if result and result[0] == hash_password(password):
-        save_session(email)
-        return True
-    return False
 
 def get_user_role(email):
     """Get user's role from database"""
