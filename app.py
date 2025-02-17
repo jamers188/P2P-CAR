@@ -45,6 +45,17 @@ st.markdown("""
             --background-color: #F4F4F8;
             --text-color: #333;
         }
+        
+        /* SVG Fixes */
+        button[kind="secondary"] svg,
+        button[data-testid="stBaseButton-secondary"] svg,
+        .st-emotion-cache-ocsh0s svg,
+        .e1d5ycv52 svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+        }
 
         /* Global Styles */
         .stApp {
@@ -417,12 +428,14 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
+    """Verify user credentials"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
         # Special case for admin
         if email == "admin@luxuryrentals.com" and password == "admin123":
+            save_session(email, 'admin_panel')
             return True
         
         # Hash the password
@@ -433,6 +446,7 @@ def verify_user(email, password):
         result = c.fetchone()
         
         if result and result[0] == hashed_password:
+            save_session(email, 'browse_cars')
             return True
         return False
     except sqlite3.Error as e:
@@ -621,14 +635,11 @@ def login_page():
         password = st.text_input('Password', type='password', key='login_password')
         
         if st.button('Login', key='login_submit'):
-            # Verify user credentials
             if verify_user(email, password):
-                # Update session state
+                # Get user role and update session
+                role = get_user_role(email)
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                
-                # Get user role
-                role = get_user_role(email)
                 
                 # Show success message
                 st.success('Login successful!')
@@ -638,8 +649,7 @@ def login_page():
                     st.session_state.current_page = 'admin_panel'
                 else:
                     st.session_state.current_page = 'browse_cars'
-                    
-                # Add a small delay to allow the success message to be seen
+                
                 time.sleep(1)
                 st.rerun()
             else:
@@ -649,7 +659,7 @@ def login_page():
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
             st.rerun()
-
+            
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
