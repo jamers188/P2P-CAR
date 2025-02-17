@@ -46,16 +46,50 @@ st.markdown("""
             --text-color: #333;
         }
         
-        /* SVG Fixes */
-        button[kind="secondary"] svg,
-        button[data-testid="stBaseButton-secondary"] svg,
-        .st-emotion-cache-ocsh0s svg,
-        .e1d5ycv52 svg {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-        }
+        /* SVG and Button Fixes */
+div.stButton button svg,
+div.stButton button svg *,
+button[data-testid="baseButton-secondary"] svg,
+button[data-testid="baseButton-secondary"] svg *,
+.st-bw svg,
+.st-bx svg,
+.st-by svg,
+.st-bz svg,
+.st-emotion-cache-ocsh0s svg,
+.e1d5ycv52 svg,
+[data-testid="stMarkdownContainer"] svg,
+.stButton>button svg,
+.element-container svg,
+.stMarkdown svg,
+.css-1kyxreq svg,
+.css-1ht1j8u svg {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+}
+
+/* Force all SVG elements to use pixel values */
+svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* Button container fixes */
+.stButton>button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+/* Back button fixes */
+button[data-testid="baseButton-secondary"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 16px !important;
+}
 
         /* Global Styles */
         .stApp {
