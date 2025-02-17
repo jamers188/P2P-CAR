@@ -38,7 +38,6 @@ st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
 st.markdown("""
     <style>
-        /* Root Variables and SVG Fixes */
         :root {
             --primary-color: #4B0082;
             --secondary-color: #6A0DAD;
@@ -46,40 +45,41 @@ st.markdown("""
             --text-color: #333;
         }
 
-        /* SVG Size Fixes */
-        .st-emotion-cache-ocsh0s svg {
+        *[class*="st-"] svg,
+        *[class*="st-"] svg *,
+        .stButton svg,
+        .stButton svg *,
+        [data-testid*="st"] svg,
+        [data-testid*="st"] svg *,
+        button svg,
+        button svg * {
             width: 16px !important;
             height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
         }
 
-        .st-emotion-cache-1gulkj5 svg {
+        svg {
             width: 16px !important;
             height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
         }
 
-        .stButton > button svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-
-        button[data-testid="baseButton-secondary"] svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-
-        button[kind="secondary"] svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-
-        /* Global Styles */
         .stApp {
             background-color: var(--background-color);
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* Button Styling */
         .stButton>button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
             width: 100%;
             border-radius: 20px;
             height: 48px;
@@ -92,10 +92,6 @@ st.markdown("""
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
         }
         
         .stButton>button:hover {
@@ -103,22 +99,11 @@ st.markdown("""
             transform: translateY(-3px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-
-        /* Back Button Specific */
-        button[data-testid="baseButton-secondary"] {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            padding: 8px 16px !important;
-        }
         
-        /* Layout */
         .css-1d391kg {
             padding: 2rem 1rem;
         }
         
-        /* Input Styling */
         input[type="text"], input[type="password"] {
             border-radius: 20px;
             padding: 10px 15px;
@@ -131,7 +116,6 @@ st.markdown("""
             box-shadow: 0 0 10px rgba(106,13,173,0.2);
         }
         
-        /* Headings */
         h1 {
             color: var(--primary-color);
             text-align: center;
@@ -140,7 +124,6 @@ st.markdown("""
             letter-spacing: -1px;
         }
         
-        /* Card Styling */
         .car-card {
             background-color: white;
             border-radius: 15px;
@@ -156,7 +139,6 @@ st.markdown("""
             box-shadow: 0 15px 30px rgba(0,0,0,0.15);
         }
         
-        /* Message Styling */
         .success-message {
             background-color: #E8F5E9;
             color: #2E7D32;
@@ -175,7 +157,6 @@ st.markdown("""
             border-left: 4px solid #C62828;
         }
         
-        /* Status Badge */
         .status-badge {
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -201,7 +182,6 @@ st.markdown("""
             color: white;
         }
         
-        /* Admin Review Card */
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
@@ -211,7 +191,6 @@ st.markdown("""
             border: 1px solid #e1e1e8;
         }
         
-        /* Image Gallery */
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -230,43 +209,20 @@ st.markdown("""
             transform: scale(1.05);
         }
 
-        /* Welcome Section */
-        .welcome-section {
-            text-align: center;
-            padding: 2rem;
+        button[data-testid="baseButton-secondary"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 8px 16px !important;
+            height: 36px !important;
         }
 
-        .welcome-section h2 {
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
-
-        .welcome-section p {
-            font-size: 1.2rem;
-            color: #666;
-        }
-
-        /* Notification Badge */
-        .notification-badge {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Form Elements */
-        .form-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        /* Additional button styles for consistency */
-        button[data-testid="stButton"] > div {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        [data-testid="stMarkdownContainer"] svg,
+        .element-container svg,
+        .stMarkdown svg {
+            width: 16px !important;
+            height: 16px !important;
         }
     </style>
 """, unsafe_allow_html=True)
