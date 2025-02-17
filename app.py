@@ -190,6 +190,17 @@ st.markdown("""
         .image-gallery img:hover {
             transform: scale(1.05);
         }
+
+        button svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+
+
+        button[data-testid="stBaseButton-secondary"] svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
