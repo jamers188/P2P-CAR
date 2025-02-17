@@ -14,20 +14,38 @@ SESSION_FILE = "session.json"
 
 def save_session(email, page):
     """Save login session and current page to a file."""
-    session_data = {"logged_in": True, "user_email": email, "current_page": page}
-    with open(SESSION_FILE, "w") as f:
-        json.dump(session_data, f)
+    session_data = {
+        "logged_in": True,
+        "user_email": email,
+        "current_page": page,
+        "timestamp": time.time()  # Add timestamp for session expiry
+    }
+    try:
+        with open(SESSION_FILE, "w") as f:
+            json.dump(session_data, f)
+    except Exception as e:
+        print(f"Error saving session: {e}")
 
 def load_session():
     """Load session from a file and provide default values if missing."""
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, "r") as f:
-            session_data = json.load(f)
-        return {
-            "logged_in": session_data.get("logged_in", False),
-            "user_email": session_data.get("user_email", None),
-            "current_page": session_data.get("current_page", "browse_cars")  # Default page
-        }
+    try:
+        if os.path.exists(SESSION_FILE):
+            with open(SESSION_FILE, "r") as f:
+                session_data = json.load(f)
+                
+            # Check if session is expired (24 hours)
+            if time.time() - session_data.get("timestamp", 0) > 86400:
+                os.remove(SESSION_FILE)
+                return {"logged_in": False, "user_email": None, "current_page": "welcome"}
+                
+            return {
+                "logged_in": session_data.get("logged_in", False),
+                "user_email": session_data.get("user_email", None),
+                "current_page": session_data.get("current_page", "browse_cars")
+            }
+    except Exception as e:
+        print(f"Error loading session: {e}")
+    
     return {"logged_in": False, "user_email": None, "current_page": "welcome"}
 
 
@@ -472,20 +490,16 @@ def verify_user(email, password):
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Special case for admin
-        if email == "admin@luxuryrentals.com" and password == "admin123":
-            save_session(email, 'admin_panel')
-            return True
-        
-        # Hash the password
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        # Hash the password for comparison
+        hashed_password = hash_password(password)
         
         # Check credentials
-        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        c.execute('SELECT password, role FROM users WHERE email = ?', (email,))
         result = c.fetchone()
         
         if result and result[0] == hashed_password:
-            save_session(email, 'browse_cars')
+            # Save session immediately upon successful verification
+            save_session(email, 'browse_cars' if result[1] != 'admin' else 'admin_panel')
             return True
         return False
     except sqlite3.Error as e:
@@ -687,9 +701,13 @@ def login_page():
         password = st.text_input('Password', type='password', key='login_password')
         
         if st.button('Login', key='login_submit'):
-            if verify_user(email, password):
-                # Get user role and update session
+            if not email or not password:
+                st.error('Please enter both email and password')
+            elif verify_user(email, password):
+                # Get user role
                 role = get_user_role(email)
+                
+                # Update session state
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 
@@ -702,6 +720,7 @@ def login_page():
                 else:
                     st.session_state.current_page = 'browse_cars'
                 
+                # Force a rerun to update the UI
                 time.sleep(1)
                 st.rerun()
             else:
@@ -711,7 +730,7 @@ def login_page():
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
             st.rerun()
-            
+
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -1817,15 +1836,16 @@ def main():
     else:
         update_bookings_table()
     
-    # Persistent login state initialization
+    # Load saved session
+    session_data = load_session()
+    
+    # Initialize session state
     if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    
+        st.session_state.logged_in = session_data["logged_in"]
     if 'user_email' not in st.session_state:
-        st.session_state.user_email = None
-    
+        st.session_state.user_email = session_data["user_email"]
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
+        st.session_state.current_page = session_data["current_page"]
     
     # Verify login persistence
     if st.session_state.logged_in:
