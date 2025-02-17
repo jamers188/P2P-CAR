@@ -12,97 +12,292 @@ import json
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
-# Custom CSS
 st.markdown("""
     <style>
+        /* Root Variables for Theming */
+        :root {
+            --primary-color: #4B0082;
+            --secondary-color: #6A0DAD;
+            --background-color: #F4F4F8;
+            --text-color: #333;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #FFC107;
+        }
+
+        /* Global Styles */
+        .stApp {
+            background-color: var(--background-color);
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Layout Containers */
+        .css-1d391kg {
+            padding: 32px 16px;
+        }
+
+        /* Headings */
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            padding: 16px 0;
+            font-weight: 700;
+            letter-spacing: -1px;
+            font-size: 32px;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 24px;
+            margin: 16px 0;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin: 12px 0;
+        }
+
+        /* Button Styling */
         .stButton>button {
             width: 100%;
             border-radius: 20px;
-            height: 3em;
-            background-color: #4B0082;
+            height: 48px;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             margin: 5px 0;
             transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 16px;
+            cursor: pointer;
         }
         
         .stButton>button:hover {
-            background-color: #6A0DAD;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-        
-        .css-1d391kg {
-            padding: 2rem 1rem;
+
+        /* Back Button Specific Styling */
+        button[data-testid="stBaseButton-secondary"] {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto !important;
+            height: 36px !important;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
         }
-        
-        input[type="text"], input[type="password"] {
+
+        button[data-testid="stBaseButton-secondary"]:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* SVG Icon Fixes */
+        button svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+
+        /* Input Fields */
+        input[type="text"], 
+        input[type="password"],
+        input[type="email"],
+        input[type="number"],
+        .stTextInput>div>div>input {
             border-radius: 20px;
-            padding: 10px 15px;
-            border: 2px solid #4B0082;
+            padding: 12px 16px;
+            border: 2px solid var(--primary-color);
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 16px;
+            background-color: white;
         }
         
         .stTextInput>div>div>input:focus {
-            border-color: #6A0DAD;
-            box-shadow: 0 0 5px rgba(106,13,173,0.5);
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 10px rgba(106,13,173,0.2);
+            outline: none;
         }
-        
-        h1 {
-            color: #4B0082;
-            text-align: center;
-            padding: 1rem 0;
-        }
-        
+
+        /* Card Styling */
         .car-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin: 1rem 0;
+            padding: 24px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 16px 0;
             transition: all 0.3s ease;
+            border: 1px solid #e1e1e8;
         }
         
         .car-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
         }
         
+        .status-badge.pending {
+            background-color: var(--warning-color);
+            color: #333;
+        }
+        
+        .status-badge.approved {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .status-badge.rejected {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        /* Message Styling */
         .success-message {
             background-color: #E8F5E9;
-            color: #2E7D32;
-            padding: 1rem;
+            color: var(--success-color);
+            padding: 16px;
             border-radius: 10px;
-            margin: 1rem 0;
+            margin: 16px 0;
+            border-left: 4px solid var(--success-color);
         }
         
         .error-message {
             background-color: #FFEBEE;
-            color: #C62828;
-            padding: 1rem;
+            color: var(--error-color);
+            padding: 16px;
             border-radius: 10px;
-            margin: 1rem 0;
+            margin: 16px 0;
+            border-left: 4px solid var(--error-color);
         }
-        
-        .status-badge {
-            padding: 0.25rem 0.5rem;
+
+        /* Admin Review Card */
+        .admin-review-card {
+            background-color: white;
             border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: bold;
+            padding: 24px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 24px 0;
+            border: 1px solid #e1e1e8;
+        }
+
+        /* Image Gallery */
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
         }
         
-        .status-badge.pending {
-            background-color: #FFF3CD;
-            color: #856404;
+        .image-gallery img {
+            width: 100%;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
         
-        .status-badge.approved {
-            background-color: #D4EDDA;
-            color: #155724;
+        .image-gallery img:hover {
+            transform: scale(1.05);
         }
-        
-        .status-badge.rejected {
-            background-color: #F8D7DA;
-            color: #721C24;
+
+        /* Form Elements */
+        .stSelectbox {
+            margin: 8px 0;
+        }
+
+        .stSelectbox>div>div {
+            border-radius: 20px;
+        }
+
+        .stTextArea textarea {
+            border-radius: 15px;
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+        }
+
+        /* Checkbox Styling */
+        .stCheckbox {
+            margin: 8px 0;
+        }
+
+        .stCheckbox>div>div>label {
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        /* Date Input Styling */
+        .stDateInput>div>div {
+            border-radius: 20px;
+        }
+
+        /* Sidebar Styling */
+        .css-1d391kg .sidebar .sidebar-content {
+            background-color: white;
+            padding: 16px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .stButton>button {
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .car-card {
+                padding: 16px;
+            }
+
+            .image-gallery {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        /* Tooltip Styling */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: #555;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -274,14 +469,30 @@ def create_user(full_name, email, phone, password):
         conn.close()
 
 def verify_user(email, password):
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    c.execute('SELECT password FROM users WHERE email = ?', (email,))
-    result = c.fetchone()
-    conn.close()
-    if result and result[0] == hash_password(password):
-        return True
-    return False
+    try:
+        # Special case for admin
+        if email == "admin@luxuryrentals.com" and password == "admin123":
+            return True
+            
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Hash the password
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Check credentials
+        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        result = c.fetchone()
+        
+        if result and result[0] == hashed_password:
+            return True
+        return False
+    except sqlite3.Error as e:
+        print(f"Database error during verification: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 # Notification functions
 def create_notification(user_email, message, type):
@@ -332,25 +543,43 @@ def welcome_page():
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
+        st.rerun()
     
-    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Login</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email/Phone')
-        password = st.text_input('Password', type='password')
+        email = st.text_input('Email', key='login_email')
+        password = st.text_input('Password', type='password', key='login_password')
         
         if st.button('Login', key='login_submit'):
-            if verify_user(email, password):
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.current_page = 'browse_cars'
-                st.success('Login successful!')
-            else:
-                st.error('Invalid credentials')
-        
-        if st.button('Forgot Password?', key='forgot_password'):
-            st.session_state.current_page = 'reset_password'
+            try:
+                if verify_user(email, password):
+                    # Set session state
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    
+                    # Get user role
+                    role = get_user_role(email)
+                    
+                    # Save session
+                    save_session(email, 'browse_cars' if role != 'admin' else 'admin_panel')
+                    
+                    # Show success message
+                    st.success('Login successful!')
+                    
+                    # Set next page based on role
+                    st.session_state.current_page = 'admin_panel' if role == 'admin' else 'browse_cars'
+                    
+                    # Rerun to update the page
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error('Invalid email or password')
+            except Exception as e:
+                st.error(f'Login error: {str(e)}')
+                print(f'Login error details: {str(e)}')
+
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
