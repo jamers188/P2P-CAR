@@ -9,37 +9,6 @@ import io
 import base64
 import json
 
-
-SESSION_FILE = "session.json"
-
-def save_session(email, page):
-    """Save login session and current page to a file."""
-    try:
-        session_data = {
-            "logged_in": True, 
-            "user_email": email, 
-            "current_page": page
-        }
-        with open(SESSION_FILE, "w") as f:
-            json.dump(session_data, f)
-    except Exception as e:
-        st.error(f"Error saving session: {e}")
-
-def load_session():
-    """Load session from a file and provide default values if missing."""
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, "r") as f:
-            session_data = json.load(f)
-        return {
-            "logged_in": session_data.get("logged_in", False),
-            "user_email": session_data.get("user_email", None),
-            "current_page": session_data.get("current_page", "browse_cars")  # Default page
-        }
-    return {"logged_in": False, "user_email": None, "current_page": "welcome"}
-
-
-
-
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
@@ -200,13 +169,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load previous session if it exists
-session_data = load_session()
-
-st.session_state.logged_in = session_data.get("logged_in", False)
-st.session_state.user_email = session_data.get("user_email", None)
-st.session_state.current_page = session_data.get("current_page", "welcome")
-
+# Initialize session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = None
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'welcome'
+if 'selected_car' not in st.session_state:
+    st.session_state.selected_car = None
 
 # Database setup
 def setup_database():
@@ -219,6 +190,7 @@ def setup_database():
         c = conn.cursor()
 
         
+        # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -230,8 +202,6 @@ def setup_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
-
 
         # Create car_listings table
         c.execute('''
@@ -328,31 +298,31 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
-        admin_email = 'admin@luxuryrentals.com'
+        # Create admin user
         admin_password = hash_password('admin123')
-        
-        try:
-            c.execute('''
-                INSERT INTO users (full_name, email, phone, password, role)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (
-                'Admin User',
-                admin_email,
-                '+971500000000',
-                admin_password,
-                'admin'
-            ))
-            conn.commit()
-            print(f"Admin user created with email: {admin_email}")
-        except sqlite3.IntegrityError:
-            print("Admin user might already exist")
+        c.execute('''
+            INSERT INTO users (full_name, email, phone, password, role)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            'Admin User',
+            'admin@luxuryrentals.com',
+            '+971500000000',
+            admin_password,
+            'admin'
+        ))
 
-        conn.close()
+       
+
+        conn.commit()
         print("Database initialized successfully")
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         raise
+    finally:
+        if conn:
+            conn.close()
+
 # Sample car data
 cars_data = {
     'Luxury': [
@@ -425,7 +395,7 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials with improved error handling"""
+    """Verify user credentials"""
     try:
         # Special case for admin
         if email == "admin@luxuryrentals.com" and password == "admin123":
@@ -435,18 +405,17 @@ def verify_user(email, password):
         c = conn.cursor()
         c.execute('SELECT password FROM users WHERE email = ?', (email,))
         result = c.fetchone()
-        conn.close()
         
-        # Check if user exists and password matches
         if result and result[0] == hash_password(password):
             return True
-        
-        print(f"Login failed for {email}")
         return False
     except sqlite3.Error as e:
-        print(f"Database error during login: {e}")
+        print(f"Database error: {e}")
         return False
-        
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 def get_user_role(email):
     """Get user's role from database"""
     try:
@@ -597,97 +566,60 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 def welcome_page():
     st.markdown("<h1>🚗 Luxury Car Rentals</h1>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button('Login', key='welcome_login_unique'):
-            st.session_state.current_page = 'login'
-            st.rerun()  # Changed from experimental_rerun()
-        
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
-        if st.button('Create Account', key='welcome_signup_unique'):
-            st.session_state.current_page = 'signup'
-            st.rerun()  # Changed from experimental_rerun()
-        
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        
-        if st.button('Browse Cars', key='welcome_browse_unique'):
-            st.session_state.current_page = 'browse_cars'
-            st.rerun()  # Changed from experimental_rerun()
-def login_page():
-    st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
+    st.markdown("""
+        <div style='text-align: center; padding: 2rem;'>
+            <h2 style='color: #4B0082;'>Experience Luxury on Wheels</h2>
+            <p style='font-size: 1.2rem; color: #666;'>Discover our exclusive collection of premium vehicles</p>
+        </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Add a hidden header to force Streamlit to rerun
-        st.markdown("### Login Diagnostics")
-        
-        email = st.text_input('Email', key='login_email_debug')
-        password = st.text_input('Password', type='password', key='login_password_debug')
-        
-        # Debug: Print out current state before login attempt
-        st.write(f"Debug - Current Database Path: {os.path.abspath('car_rental.db')}")
-        st.write(f"Debug - Database Exists: {os.path.exists('car_rental.db')}")
-        
-        if st.button('Login', key='login_submit_debug'):
-            st.write("Login button clicked")
+        if st.button('Login', key='welcome_login'):
+            st.session_state.current_page = 'login'
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Create Account', key='welcome_signup'):
+            st.session_state.current_page = 'signup'
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Browse Cars', key='welcome_browse'):
+            st.session_state.current_page = 'browse_cars'
+
+def login_page():
+    if st.button('← Back to Welcome', key='login_back'):
+        st.session_state.current_page = 'welcome'
+    
+    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        email = st.text_input('Email')
+        password = st.text_input('Password', type='password')
+
+
+    
+        if st.button('Login', key='login_submit'):
+            if verify_user(email, password):
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
             
-            # Comprehensive logging
-            try:
-                # Verify database connection
-                if not os.path.exists('car_rental.db'):
-                    st.error("Database file does not exist!")
-                    return
-                
-                conn = sqlite3.connect('car_rental.db')
-                c = conn.cursor()
-                
-                # Debug: Check table structure
-                c.execute("PRAGMA table_info(users)")
-                columns = c.fetchall()
-                st.write("User Table Columns:")
-                for col in columns:
-                    st.write(col)
-                
-                # Hashed password for verification
-                hashed_password = hash_password(password)
-                
-                # Comprehensive query
-                c.execute('SELECT * FROM users WHERE email = ?', (email,))
-                user = c.fetchone()
-                
-                st.write("Debug - User Query Result:")
-                st.write(f"User found: {user is not None}")
-                
-                if user:
-                    # Detailed password checking
-                    st.write(f"Stored Hashed Password: {user[4]}")
-                    st.write(f"Input Hashed Password: {hashed_password}")
-                    
-                    if user[4] == hashed_password:
-                        st.success("Password Matched!")
-                        
-                        # Manual session state setting
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = email
-                        st.session_state.current_page = 'browse_cars'
-                        
-                        # Experimental rerun to update page
-                        st.experimental_rerun()
-                    else:
-                        st.error("Password does not match")
+                # Get user role
+                role = get_user_role(email)
+            
+                if role == 'admin':
+                    st.session_state.current_page = 'admin_panel'
                 else:
-                    st.error(f"No user found with email: {email}")
-                
-                conn.close()
-            
-            except Exception as e:
-                st.error(f"Login Error: {e}")
-                # Print full traceback
-                import traceback
-                st.write(traceback.format_exc())
-            
-            
+                    st.session_state.current_page = 'browse_cars'
+                st.success('Login successful!')
+                st.experimental_rerun()  # This will restart the app in the new page
+            else:
+                st.error('Invalid credentials')
+
+        
+        
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        if st.button('Forgot Password?', key='forgot_password'):
+            st.session_state.current_page = 'reset_password'
+
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -708,15 +640,12 @@ def signup_page():
             elif not all([full_name, email, phone, password]):
                 st.error('Please fill in all fields')
             else:
-                try:
-                    if create_user(full_name, email, phone, password):
-                        st.success('Account created successfully!')
-                        st.session_state.current_page = 'login'
-                        st.experimental_rerun()
-                    else:
-                        st.error('Email already exists or account creation failed')
-                except Exception as e:
-                    st.error(f"Error creating account: {e}")
+                if create_user(full_name, email, phone, password):
+                    st.success('Account created successfully!')
+                    st.session_state.current_page = 'login'
+                else:
+                    st.error('Email already exists')
+
 def browse_cars_page():
     col1, col2 = st.columns([9, 1])
     with col2:
@@ -1796,19 +1725,22 @@ def main():
     else:
         update_bookings_table()
     
-    # Initialize session state
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
+    # Initialize session state variables if not exists
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    
     if 'user_email' not in st.session_state:
         st.session_state.user_email = None
-
-
- 
     
-    # Verify login persistence
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 'welcome'
+    
+    if 'selected_car' not in st.session_state:
+        st.session_state.selected_car = None
+    
+    # Ensure the last logged-in state is preserved
     if st.session_state.logged_in:
+        # Optional: Add a check to verify the user still exists in the database
         try:
             conn = sqlite3.connect('car_rental.db')
             c = conn.cursor()
@@ -1817,14 +1749,18 @@ def main():
             conn.close()
             
             if not user:
+                # If user no longer exists, log out
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.current_page = 'welcome'
         except Exception as e:
-            print(f"Login verification error: {e}")
-
+            print(f"Error checking user: {e}")
     
-    # Sidebar for logged-in users
+    # If not logged in, default to welcome or last non-login page
+    if not st.session_state.logged_in:
+        st.session_state.current_page = 'welcome'
+    
+    # Sidebar navigation for logged-in users
     if st.session_state.logged_in:
         with st.sidebar:
             st.markdown("### My Account")
@@ -1833,108 +1769,102 @@ def main():
             # Get user role
             role = get_user_role(st.session_state.user_email)
             
-            # Admin panel for admin users
+            # Show admin panel button for admin users
             if role == 'admin':
                 st.markdown("### Admin Functions")
                 if st.button("🔧 Admin Panel"):
                     st.session_state.current_page = 'admin_panel'
                 st.markdown("---")
             
-            # Navigation buttons
-            nav_items = [
-                ("🚗 Browse Cars", 'browse_cars'),
-                ("📝 My Listings", 'my_listings'),
-                ("➕ List Your Car", 'list_your_car'),
-                ("🚗 My Bookings", 'my_bookings'),
-                ("📋 Bookings for My Cars", 'owner_bookings')
-            ]
+            # Regular navigation
+            if st.button("🚗 Browse Cars"):
+                st.session_state.current_page = 'browse_cars'
+
+            if st.button("🚘 My Bookings"):
+                st.session_state.current_page = 'my_bookings'
+
+            if st.button("➕ List Your Car"):
+                st.session_state.current_page = 'list_your_car'
+                            
+            if st.button("📝 My Listings"):
+                st.session_state.current_page = 'my_listings'
+
+            if st.button("📋 Bookings for My Cars"):
+                st.session_state.current_page = 'owner_bookings'
             
-            for label, page in nav_items:
-                if st.button(label):
-                    st.session_state.current_page = page
-            
-            # Notifications
+            # Show notifications with count
             unread_count = get_unread_notifications_count(st.session_state.user_email)
-            notification_label = f"🔔 Notifications ({unread_count})" if unread_count > 0 else "🔔 Notifications"
-            if st.button(notification_label):
-                st.session_state.current_page = 'notifications'
+            if unread_count > 0:
+                if st.button(f"🔔 Notifications ({unread_count})"):
+                    st.session_state.current_page = 'notifications'
+            else:
+                if st.button("🔔 Notifications"):
+                    st.session_state.current_page = 'notifications'
             
             st.markdown("---")
-
-
-
             if st.button("👋 Logout"):
-
-                if os.path.exists(SESSION_FILE):
-                    os.remove(SESSION_FILE)
-
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
-                st.session_state.current_page = "welcome"
-                st.success("Logged out successfully!")
+                st.session_state.current_page = 'welcome'
                 st.experimental_rerun()
-
-           
-             
-          
-    # Page routing with proper state management
-    if st.session_state.logged_in:
-        # Show protected pages
-        page_handlers.get(st.session_state.current_page, browse_cars_page)()
-    else:
-        # Show public pages
-        if st.session_state.current_page == 'welcome':
-            welcome_page()
-        elif st.session_state.current_page == 'login':
-            login_page()
-        elif st.session_state.current_page == 'signup':
-            signup_page()
+    
+    # Page routing logic
+    if st.session_state.current_page == 'welcome':
+        welcome_page()
+    elif st.session_state.current_page == 'login':
+        login_page()
+    elif st.session_state.current_page == 'signup':
+        signup_page()
+    elif st.session_state.current_page == 'admin_panel':
+        if st.session_state.logged_in and get_user_role(st.session_state.user_email) == 'admin':
+            admin_panel()
         else:
-            st.session_state.current_page = 'welcome'
-            welcome_page()
-
-    
-    
-    # Page rendering
-    page_handlers = {
-        'welcome': welcome_page,
-        'login': login_page,
-        'signup': signup_page,
-        'browse_cars': browse_cars_page,
-        'admin_panel': admin_panel,
-        'list_your_car': list_your_car_page,
-        'my_listings': my_listings_page,
-        'notifications': notifications_page,
-        'my_bookings': my_bookings_page,
-        'owner_bookings': owner_bookings_page,
-        'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') else browse_cars_page,
-        'book_car': book_car_page
-    }
-    
-    # Authentication check for protected pages
-    protected_pages = [
-        'list_your_car', 'my_listings', 'notifications', 
-        'my_bookings', 'owner_bookings', 'book_car', 'admin_panel'
-    ]
-    
-    # Render the current page
-    current_page = st.session_state.current_page
-    
-    if current_page in protected_pages:
+            st.error("Access denied. Admin privileges required.")
+            st.session_state.current_page = 'browse_cars'
+    elif st.session_state.current_page == 'browse_cars':
+        browse_cars_page()
+    elif st.session_state.current_page == 'list_your_car':
         if st.session_state.logged_in:
-            # Special handling for admin panel
-            if current_page == 'admin_panel' and get_user_role(st.session_state.user_email) != 'admin':
-                st.error("Access denied. Admin privileges required.")
-                st.session_state.current_page = 'browse_cars'
-                browse_cars_page()
-            else:
-                page_handlers.get(current_page, welcome_page)()
+            list_your_car_page()
         else:
-            st.warning("Please log in to access this page")
+            st.warning("Please log in to list your car")
             st.session_state.current_page = 'login'
-            login_page()
-    else:
-        page_handlers.get(current_page, welcome_page)()
+    elif st.session_state.current_page == 'my_listings':
+        if st.session_state.logged_in:
+            my_listings_page()
+        else:
+            st.warning("Please log in to view your listings")
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'notifications':
+        if st.session_state.logged_in:
+            notifications_page()
+        else:
+            st.warning("Please log in to view notifications")
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'car_details':
+        if st.session_state.selected_car:
+            show_car_details(st.session_state.selected_car)
+        else:
+            st.error("No car selected")
+            st.session_state.current_page = 'browse_cars'
+    elif st.session_state.current_page == 'book_car':
+        if st.session_state.logged_in:
+            book_car_page()
+        else:
+            st.warning("Please log in to book a car")
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'my_bookings':
+        if st.session_state.logged_in:
+            my_bookings_page()
+        else:
+            st.warning("Please log in to view your bookings")
+            st.session_state.current_page = 'login'
+    elif st.session_state.current_page == 'owner_bookings':
+        if st.session_state.logged_in:
+            owner_bookings_page()
+        else:
+            st.warning("Please log in to view bookings")
+            st.session_state.current_page = 'login'
 
 if __name__ == '__main__':
     try:
