@@ -595,6 +595,10 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 
 # Page Components
 def welcome_page():
+    # Ensure session state is initialized
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 'welcome'
+
     st.markdown("<h1>🚗 Luxury Car Rentals</h1>", unsafe_allow_html=True)
     
     st.markdown("""
@@ -604,29 +608,31 @@ def welcome_page():
         </div>
     """, unsafe_allow_html=True)
     
-    # Center the buttons
+    # Create centered buttons with full width
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Use st.button with unique keys and explicit state changes
-        if st.button('Login', key='welcome_login_btn'):
-            # Explicitly set the current page to login
+        # Login Button
+        if st.button('Login', key='welcome_login', use_container_width=True):
             st.session_state.current_page = 'login'
-            # Use st.rerun() instead of experimental_rerun()
+            # Force page refresh
             st.rerun()
         
-        # Add some vertical spacing
+        # Add spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        if st.button('Create Account', key='welcome_signup_btn'):
+        # Create Account Button
+        if st.button('Create Account', key='welcome_signup', use_container_width=True):
             st.session_state.current_page = 'signup'
             st.rerun()
         
-        # Add some vertical spacing
+        # Add spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        if st.button('Browse Cars', key='welcome_browse_btn'):
+        # Browse Cars Button
+        if st.button('Browse Cars', key='welcome_browse', use_container_width=True):
             st.session_state.current_page = 'browse_cars'
             st.rerun()
+            
 def login_page():
     st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
     
@@ -1809,16 +1815,15 @@ def main():
     else:
         update_bookings_table()
     
-    # Ensure all required session state variables are initialized
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    
-    if 'user_email' not in st.session_state:
-        st.session_state.user_email = None
-    
+    # Initialize session state
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 'welcome'
-    
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+    if 'user_email' not in st.session_state:
+        st.session_state.user_email = None
+
+
  
     
     # Verify login persistence
