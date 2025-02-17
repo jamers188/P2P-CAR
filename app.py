@@ -44,26 +44,6 @@ st.markdown("""
             --secondary-color: #6A0DAD;
             --background-color: #F4F4F8;
             --text-color: #333;
-            --success-color: #28a745;
-            --error-color: #dc3545;
-            --warning-color: #FFC107;
-        }
-
-        /* SVG Fix - Add this at the top */
-        button svg {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-        }
-
-        button.st-emotion-cache-ocsh0s svg,
-        button[data-testid="stBaseButton-secondary"] svg,
-        .st-emotion-cache-r421ms svg,
-        .e1d5ycv52 svg,
-        .stButton svg {
-            width: 20px !important;
-            height: 20px !important;
         }
 
         /* Global Styles */
@@ -73,10 +53,10 @@ st.markdown("""
         }
 
         /* Button Styling */
-        .stButton > button {
+        .stButton>button {
             width: 100%;
             border-radius: 20px;
-            height: 48px;
+            height: 3em;
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -86,74 +66,48 @@ st.markdown("""
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 0 16px;
         }
         
-        .stButton > button:hover {
+        .stButton>button:hover {
             background-color: var(--secondary-color);
             transform: translateY(-3px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-
-        /* Back Button Fix */
-        button[data-testid="stBaseButton-secondary"] {
-            display: inline-flex !important;
-            align-items: center !important;
-            padding: 8px 16px !important;
-            height: 38px !important;
-            background-color: transparent;
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-            width: auto !important;
-        }
-
-        button[data-testid="stBaseButton-secondary"]:hover {
-            background-color: var(--primary-color);
-            color: white;
+        
+        /* Layout */
+        .css-1d391kg {
+            padding: 2rem 1rem;
         }
         
         /* Input Styling */
-        input[type="text"], 
-        input[type="password"],
-        input[type="email"],
-        input[type="number"],
-        .stTextInput > div > div > input {
+        input[type="text"], input[type="password"] {
             border-radius: 20px;
-            padding: 12px 16px;
+            padding: 10px 15px;
             border: 2px solid var(--primary-color);
             transition: all 0.3s ease;
-            width: 100%;
-            background-color: white;
         }
         
-        .stTextInput > div > div > input:focus {
+        .stTextInput>div>div>input:focus {
             border-color: var(--secondary-color);
             box-shadow: 0 0 10px rgba(106,13,173,0.2);
-            outline: none;
         }
         
         /* Headings */
         h1 {
             color: var(--primary-color);
             text-align: center;
-            padding: 16px 0;
+            padding: 1rem 0;
             font-weight: 700;
             letter-spacing: -1px;
-            font-size: 32px;
-            margin-bottom: 24px;
         }
         
         /* Card Styling */
         .car-card {
             background-color: white;
             border-radius: 15px;
-            padding: 24px;
+            padding: 1rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 16px 0;
+            margin: 1rem 0;
             transition: all 0.3s ease;
             border: 1px solid #e1e1e8;
         }
@@ -166,27 +120,27 @@ st.markdown("""
         /* Message Styling */
         .success-message {
             background-color: #E8F5E9;
-            color: var(--success-color);
-            padding: 16px;
+            color: #2E7D32;
+            padding: 1rem;
             border-radius: 10px;
-            margin: 16px 0;
-            border-left: 4px solid var(--success-color);
+            margin: 1rem 0;
+            border-left: 4px solid #2E7D32;
         }
         
         .error-message {
             background-color: #FFEBEE;
-            color: var(--error-color);
-            padding: 16px;
+            color: #C62828;
+            padding: 1rem;
             border-radius: 10px;
-            margin: 16px 0;
-            border-left: 4px solid var(--error-color);
+            margin: 1rem 0;
+            border-left: 4px solid #C62828;
         }
         
         /* Status Badge */
         .status-badge {
-            padding: 8px 16px;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 0.8rem;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -194,17 +148,17 @@ st.markdown("""
         }
         
         .status-badge.pending {
-            background-color: var(--warning-color);
+            background-color: #FFC107;
             color: #333;
         }
         
         .status-badge.approved {
-            background-color: var(--success-color);
+            background-color: #28a745;
             color: white;
         }
         
         .status-badge.rejected {
-            background-color: var(--error-color);
+            background-color: #dc3545;
             color: white;
         }
         
@@ -212,9 +166,9 @@ st.markdown("""
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
-            padding: 24px;
+            padding: 1.5rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 24px 0;
+            margin: 1.5rem 0;
             border: 1px solid #e1e1e8;
         }
         
@@ -222,13 +176,12 @@ st.markdown("""
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin: 16px 0;
+            gap: 1rem;
+            margin: 1rem 0;
         }
         
         .image-gallery img {
             width: 100%;
-            height: auto;
             border-radius: 10px;
             transition: transform 0.3s ease;
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
@@ -236,62 +189,6 @@ st.markdown("""
         
         .image-gallery img:hover {
             transform: scale(1.05);
-        }
-
-        /* Form Elements */
-        .stSelectbox {
-            margin: 8px 0;
-        }
-
-        .stSelectbox > div > div {
-            border-radius: 20px;
-        }
-
-        .stTextArea textarea {
-            border-radius: 15px;
-            padding: 12px;
-            border: 2px solid var(--primary-color);
-        }
-
-        /* Checkbox Styling */
-        .stCheckbox {
-            margin: 8px 0;
-        }
-
-        .stCheckbox > div > div > label {
-            color: var(--text-color);
-            font-weight: 500;
-        }
-
-        /* Date Input Styling */
-        .stDateInput > div > div {
-            border-radius: 20px;
-        }
-
-        /* Layout Spacing */
-        .css-1d391kg {
-            padding: 32px 16px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .stButton > button {
-                height: 40px;
-                font-size: 14px;
-            }
-
-            .car-card {
-                padding: 16px;
-            }
-
-            .image-gallery {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
-            h1 {
-                font-size: 24px;
-                margin-bottom: 16px;
-            }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -720,37 +617,44 @@ def welcome_page():
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
+        st.rerun()
     
     st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email')
-        password = st.text_input('Password', type='password')
+        email = st.text_input('Email', key='login_email')
+        password = st.text_input('Password', type='password', key='login_password')
         
         if st.button('Login', key='login_submit'):
+            # Verify user credentials
             if verify_user(email, password):
-                # Get user role
-                role = get_user_role(email)
-                
-                # Set login state
+                # Update session state
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 
-                # Determine next page based on role
+                # Get user role
+                role = get_user_role(email)
+                
+                # Show success message
+                st.success('Login successful!')
+                
+                # Set next page based on role
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
                 else:
                     st.session_state.current_page = 'browse_cars'
-                
-                st.success('Login successful!')
-                st.experimental_rerun()
+                    
+                # Add a small delay to allow the success message to be seen
+                time.sleep(1)
+                st.rerun()
             else:
-                st.error("Invalid credentials. Please try again.")
+                st.error('Invalid email or password')
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
+            st.rerun()
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
