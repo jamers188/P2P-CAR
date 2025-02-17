@@ -599,25 +599,22 @@ def welcome_page():
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        if st.button('Login', key='welcome_login', use_container_width=True):
+        # Change keys to be unique
+        if st.button('Login', key='welcome_page_login'):  # Changed key
             st.session_state.current_page = 'login'
             st.experimental_rerun()
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        if st.button('Create Account', key='welcome_signup', use_container_width=True):
+        if st.button('Create Account', key='welcome_page_signup'):  # Changed key
             st.session_state.current_page = 'signup'
             st.experimental_rerun()
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
-        if st.button('Browse Cars', key='welcome_browse', use_container_width=True):
-            if st.session_state.logged_in:
-                st.session_state.current_page = 'browse_cars'
-            else:
-                st.session_state.current_page = 'browse_cars'
+        if st.button('Browse Cars', key='welcome_page_browse'):  # Changed key
+            st.session_state.current_page = 'browse_cars'
             st.experimental_rerun()
-
 def login_page():
     st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
     
