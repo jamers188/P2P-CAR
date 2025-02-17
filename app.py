@@ -46,6 +46,40 @@ st.markdown("""
             --text-color: #333;
         }
 
+        /* SVG Size Fixes */
+        button[data-testid="baseButton-secondary"] svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        button[data-testid="stButton"] svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        .st-emotion-cache-ocsh0s svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        .stButton svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        /* Ensure all SVGs have fixed pixel values */
+        svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        /* Back Button Specific Fix */
+        button[data-testid="baseButton-secondary"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            height: 38px !important;
+        }
+
         /* Global Styles */
         .stApp {
             background-color: var(--background-color);
@@ -191,16 +225,7 @@ st.markdown("""
             transform: scale(1.05);
         }
 
-        button svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
-
-
-        button[data-testid="stBaseButton-secondary"] svg {
-            width: 16px !important;
-            height: 16px !important;
-        }
+    
     </style>
 """, unsafe_allow_html=True)
 
