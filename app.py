@@ -38,6 +38,7 @@ st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
 st.markdown("""
     <style>
+        /* Root Variables */
         :root {
             --primary-color: #4B0082;
             --secondary-color: #6A0DAD;
@@ -45,41 +46,28 @@ st.markdown("""
             --text-color: #333;
         }
 
-        *[class*="st-"] svg,
-        *[class*="st-"] svg *,
-        .stButton svg,
-        .stButton svg *,
-        [data-testid*="st"] svg,
-        [data-testid*="st"] svg *,
-        button svg,
-        button svg * {
-            width: 16px !important;
-            height: 16px !important;
-            min-width: 16px !important;
-            min-height: 16px !important;
-            max-width: 16px !important;
-            max-height: 16px !important;
+        /* All SVG Icons */
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         svg {
-            width: 16px !important;
-            height: 16px !important;
-            min-width: 16px !important;
-            min-height: 16px !important;
-            max-width: 16px !important;
-            max-height: 16px !important;
+            width: 20px !important;
+            height: 20px !important;
+            box-sizing: content-box !important;
         }
 
+        /* Global Styles */
         .stApp {
             background-color: var(--background-color);
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* Button Styling */
         .stButton>button {
-            display: inline-flex !important;
+            display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            gap: 8px !important;
             width: 100%;
             border-radius: 20px;
             height: 48px;
@@ -92,6 +80,8 @@ st.markdown("""
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 0 16px;
+            box-sizing: border-box;
         }
         
         .stButton>button:hover {
@@ -99,7 +89,21 @@ st.markdown("""
             transform: translateY(-3px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-        
+
+        /* Back Button Specific */
+        button[data-testid="baseButton-secondary"] {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 8px 16px !important;
+            height: 36px !important;
+            gap: 8px !important;
+            background-color: transparent !important;
+            border: 1px solid var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+
+        /* Rest of your CSS stays EXACTLY the same from here down */
         .css-1d391kg {
             padding: 2rem 1rem;
         }
@@ -110,7 +114,7 @@ st.markdown("""
             border: 2px solid var(--primary-color);
             transition: all 0.3s ease;
         }
-        
+      
         .stTextInput>div>div>input:focus {
             border-color: var(--secondary-color);
             box-shadow: 0 0 10px rgba(106,13,173,0.2);
