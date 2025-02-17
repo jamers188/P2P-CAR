@@ -46,40 +46,47 @@ st.markdown("""
             --text-color: #333;
         }
 
-        /* SVG Size Fixes */
-        button[data-testid="baseButton-secondary"] svg {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        button[data-testid="stButton"] svg {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        .st-emotion-cache-ocsh0s svg {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        .stButton svg {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        /* Ensure all SVGs have fixed pixel values */
-        svg {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        /* Back Button Specific Fix */
-        button[data-testid="baseButton-secondary"] {
-            display: inline-flex !important;
-            align-items: center !important;
-            height: 38px !important;
-        }
+       /* SVG and Button Fixes */
+button.st-emotion-cache-ocsh0s svg {
+    width: 20px !important;
+    height: 20px !important;
+}
 
+button[data-testid="stBaseButton-secondary"] svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.st-emotion-cache-r421ms svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.e1d5ycv52 svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.stButton svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* Back Button Fix */
+button[data-testid="stBaseButton-secondary"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 8px 16px !important;
+    height: 38px !important;
+}
+
+/* Ensure all button SVGs have fixed sizes */
+button svg {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+}
         /* Global Styles */
         .stApp {
             background-color: var(--background-color);
