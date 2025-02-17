@@ -35,7 +35,19 @@ def load_session():
 
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
-
+st.markdown("""
+    <style>
+        /* Force SVG sizing */
+        button svg, [class*="st-"] svg, [data-testid*="st"] svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 st.markdown("""
     <style>
         /* Root Variables */
@@ -640,6 +652,20 @@ def welcome_page():
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
+        # Add inline styles to force SVG sizes
+        st.markdown('''
+            <style>
+            button svg {
+                width: 20px !important;
+                height: 20px !important;
+                min-width: 20px !important;
+                min-height: 20px !important;
+                max-width: 20px !important;
+                max-height: 20px !important;
+            }
+            </style>
+        ''', unsafe_allow_html=True)
+        
         if st.button('Login', key='welcome_login'):
             st.session_state.current_page = 'login'
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
@@ -648,7 +674,6 @@ def welcome_page():
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Browse Cars', key='welcome_browse'):
             st.session_state.current_page = 'browse_cars'
-
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
