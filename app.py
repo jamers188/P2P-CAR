@@ -7,38 +7,8 @@ def hash_password(password):
     """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
-def setup_database():
-    """Create a simple database with an admin user"""
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    
-    # Drop and recreate users table
-    c.execute('DROP TABLE IF EXISTS users')
-    
-    c.execute('''
-        CREATE TABLE users (
-            id INTEGER PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user'
-        )
-    ''')
-    
-    # Create admin user
-    admin_email = 'admin@luxuryrentals.com'
-    admin_password = hash_password('admin123')
-    
-    c.execute('''
-        INSERT INTO users (email, password, role) 
-        VALUES (?, ?, ?)
-    ''', (admin_email, admin_password, 'admin'))
-    
-    conn.commit()
-    conn.close()
-    print("Database setup complete")
-
 def verify_login(email, password):
-    """Verify user credentials"""
+    """Verify user credentials with detailed logging"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -46,23 +16,35 @@ def verify_login(email, password):
         # Hash the input password
         hashed_password = hash_password(password)
         
-        # Check credentials
-        c.execute('SELECT * FROM users WHERE email = ? AND password = ?', 
-                  (email, hashed_password))
+        # Fetch user details
+        c.execute('SELECT * FROM users WHERE email = ?', (email,))
         user = c.fetchone()
         
-        conn.close()
+        # Detailed logging
+        st.write("Login Attempt Details:")
+        st.write(f"Input Email: {email}")
+        st.write(f"Input Hashed Password: {hashed_password}")
         
-        return user is not None
+        if user:
+            st.write(f"Stored User Details: {user}")
+            st.write(f"Stored Hashed Password: {user[2]}")  # Assuming password is at index 2
+            
+            # Compare passwords
+            if user[2] == hashed_password:
+                conn.close()
+                return True
+            else:
+                st.error("Password does not match")
+        else:
+            st.error(f"No user found with email: {email}")
+        
+        conn.close()
+        return False
     except Exception as e:
-        st.error(f"Login error: {e}")
+        st.error(f"Login verification error: {e}")
         return False
 
 def main():
-    # Ensure database exists
-    if not os.path.exists('car_rental.db'):
-        setup_database()
-    
     st.title("Login Page")
     
     # Login form
@@ -87,13 +69,15 @@ def main():
     st.markdown("### Debug Information")
     st.write(f"Database file exists: {os.path.exists('car_rental.db')}")
     
-    # Optional: Show database contents (for debugging)
+    # Show all registered users (for debugging)
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-        c.execute('SELECT email FROM users')
+        c.execute('SELECT id, email FROM users')
         users = c.fetchall()
-        st.write("Registered Users:", users)
+        st.write("Registered Users:")
+        for user in users:
+            st.write(f"ID: {user[0]}, Email: {user[1]}")
         conn.close()
     except Exception as e:
         st.error(f"Error reading database: {e}")
