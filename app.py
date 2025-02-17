@@ -38,58 +38,39 @@ st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
 st.markdown("""
     <style>
-        /* Root Variables for Theming */
+        /* Root Variables and SVG Fixes */
         :root {
             --primary-color: #4B0082;
             --secondary-color: #6A0DAD;
             --background-color: #F4F4F8;
             --text-color: #333;
         }
-        
-        /* SVG and Button Fixes */
-div.stButton button svg,
-div.stButton button svg *,
-button[data-testid="baseButton-secondary"] svg,
-button[data-testid="baseButton-secondary"] svg *,
-.st-bw svg,
-.st-bx svg,
-.st-by svg,
-.st-bz svg,
-.st-emotion-cache-ocsh0s svg,
-.e1d5ycv52 svg,
-[data-testid="stMarkdownContainer"] svg,
-.stButton>button svg,
-.element-container svg,
-.stMarkdown svg,
-.css-1kyxreq svg,
-.css-1ht1j8u svg {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-}
 
-/* Force all SVG elements to use pixel values */
-svg {
-    width: 20px !important;
-    height: 20px !important;
-}
+        /* SVG Size Fixes */
+        .st-emotion-cache-ocsh0s svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
 
-/* Button container fixes */
-.stButton>button {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-}
+        .st-emotion-cache-1gulkj5 svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
 
-/* Back button fixes */
-button[data-testid="baseButton-secondary"] {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    padding: 8px 16px !important;
-}
+        .stButton > button svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+
+        button[data-testid="baseButton-secondary"] svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+
+        button[kind="secondary"] svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
 
         /* Global Styles */
         .stApp {
@@ -101,7 +82,7 @@ button[data-testid="baseButton-secondary"] {
         .stButton>button {
             width: 100%;
             border-radius: 20px;
-            height: 3em;
+            height: 48px;
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -111,6 +92,10 @@ button[data-testid="baseButton-secondary"] {
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
         }
         
         .stButton>button:hover {
@@ -118,10 +103,19 @@ button[data-testid="baseButton-secondary"] {
             transform: translateY(-3px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
+
+        /* Back Button Specific */
+        button[data-testid="baseButton-secondary"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 8px 16px !important;
+        }
         
         /* Layout */
         .css-1d391kg {
-            padding: 2px 1px;
+            padding: 2rem 1rem;
         }
         
         /* Input Styling */
@@ -141,7 +135,7 @@ button[data-testid="baseButton-secondary"] {
         h1 {
             color: var(--primary-color);
             text-align: center;
-            padding: 1px 0;
+            padding: 1rem 0;
             font-weight: 700;
             letter-spacing: -1px;
         }
@@ -150,9 +144,9 @@ button[data-testid="baseButton-secondary"] {
         .car-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1px;
+            padding: 1rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1px 0;
+            margin: 1rem 0;
             transition: all 0.3s ease;
             border: 1px solid #e1e1e8;
         }
@@ -166,7 +160,7 @@ button[data-testid="baseButton-secondary"] {
         .success-message {
             background-color: #E8F5E9;
             color: #2E7D32;
-            padding: 1px;
+            padding: 1rem;
             border-radius: 10px;
             margin: 1rem 0;
             border-left: 4px solid #2E7D32;
@@ -175,7 +169,7 @@ button[data-testid="baseButton-secondary"] {
         .error-message {
             background-color: #FFEBEE;
             color: #C62828;
-            padding: 1px;
+            padding: 1rem;
             border-radius: 10px;
             margin: 1rem 0;
             border-left: 4px solid #C62828;
@@ -183,9 +177,9 @@ button[data-testid="baseButton-secondary"] {
         
         /* Status Badge */
         .status-badge {
-            padding: 0.5px 1px;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
-            font-size: 0.8px;
+            font-size: 0.8rem;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -211,9 +205,9 @@ button[data-testid="baseButton-secondary"] {
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1.5px;
+            padding: 1.5rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5px 0;
+            margin: 1.5rem 0;
             border: 1px solid #e1e1e8;
         }
         
@@ -221,8 +215,8 @@ button[data-testid="baseButton-secondary"] {
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1px;
-            margin: 1px 0;
+            gap: 1rem;
+            margin: 1rem 0;
         }
         
         .image-gallery img {
@@ -234,6 +228,45 @@ button[data-testid="baseButton-secondary"] {
         
         .image-gallery img:hover {
             transform: scale(1.05);
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .welcome-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .welcome-section p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        /* Notification Badge */
+        .notification-badge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Form Elements */
+        .form-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Additional button styles for consistency */
+        button[data-testid="stButton"] > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 """, unsafe_allow_html=True)
