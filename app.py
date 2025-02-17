@@ -51,46 +51,14 @@ def load_session():
 
 
 
-# Page config and custom CSS
-st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 st.markdown("""
     <style>
-        /* SVG Sizing Fixes */
-        svg {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
-        }
-        
-        /* Force correct SVG sizing in buttons */
-        button svg {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
-        }
-        
-        /* Ensure SVGs in specific Streamlit elements are sized correctly */
-        [data-testid*="stMarkdownContainer"] svg,
-        .element-container svg,
-        .stMarkdown svg,
-        [data-testid*="baseButton-secondary"] svg {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
-            box-sizing: content-box !important;
+        [data-testid="stBaseButton-secondary"] svg {
+            width: 16px !important;
+            height: 16px !important;
         }
     </style>
 """, unsafe_allow_html=True)
-
 
 st.markdown("""
     <style>
@@ -681,28 +649,30 @@ def welcome_page():
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        # Add inline styles to force SVG sizes
-        st.markdown('''
-            <style>
-            button svg {
-                width: 20px !important;
-                height: 20px !important;
-                min-width: 20px !important;
-                min-height: 20px !important;
-                max-width: 20px !important;
-                max-height: 20px !important;
-            }
-            </style>
-        ''', unsafe_allow_html=True)
+        # Wrap buttons in containers for better icon handling
+        st.markdown("""
+            <div class="button-container">
+                <div class="icon-container">
+                    <svg width="16" height="16" viewBox="0 0 16 16"></svg>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
         
         if st.button('Login', key='welcome_login'):
             st.session_state.current_page = 'login'
+            st.rerun()
+            
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        
         if st.button('Create Account', key='welcome_signup'):
             st.session_state.current_page = 'signup'
+            st.rerun()
+            
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        
         if st.button('Browse Cars', key='welcome_browse'):
             st.session_state.current_page = 'browse_cars'
+            st.rerun()
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
