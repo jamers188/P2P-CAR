@@ -62,188 +62,101 @@ st.markdown("""
 
 st.markdown("""
     <style>
-        /* Root Variables */
-        :root {
-            --primary-color: #4B0082;
-            --secondary-color: #6A0DAD;
-            --background-color: #F4F4F8;
-            --text-color: #333;
+        /* Reset all SVG sizing */
+        svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+        
+        /* Target Streamlit specific elements */
+        .st-emotion-cache-ocsh0s svg,
+        .st-emotion-cache-* svg,
+        [data-testid*="stMarkdownContainer"] svg,
+        [data-testid*="baseButton"] svg,
+        button svg,
+        .element-container svg {
+            width: 16px !important;
+            height: 16px !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
         }
 
-        /* Global Styles */
-        .stApp {
-            background-color: var(--background-color);
-            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        /* Force icon sizing in all contexts */
+        *[class*="st-"] svg,
+        *[data-testid*="st"] svg {
+            width: 16px !important;
+            height: 16px !important;
         }
 
-        /* Button Styling */
-        .stButton>button {
+        /* Button specific styling */
+        button[data-testid="stBaseButton-secondary"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 8px 16px !important;
+            height: 36px !important;
+            background-color: transparent !important;
+            border: 1px solid #4B0082 !important;
+            color: #4B0082 !important;
+            border-radius: 4px !important;
+        }
+
+        /* Specific overrides for button icons */
+        button[data-testid="stBaseButton-secondary"] svg {
+            width: 16px !important;
+            height: 16px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+        }
+
+        /* Global button styles */
+        .stButton > button {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            gap: 8px !important;
             width: 100%;
-            border-radius: 20px;
-            height: 48px;
-            background-color: var(--primary-color);
+            border-radius: 4px;
+            height: 36px;
+            background-color: #4B0082;
             color: white;
             border: none;
-            margin: 5px 0;
             transition: all 0.3s ease;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: 500;
             padding: 0 16px;
-            box-sizing: border-box;
-        }
-        
-        .stButton>button:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
 
-        /* Back Button Specific */
-        [data-testid="baseButton-secondary"] {
+        .stButton > button:hover {
+            background-color: #6A0DAD;
+            transform: translateY(-2px);
+        }
+
+        /* Icon containers */
+        .icon-container {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            padding: 8px 16px !important;
-            height: 36px !important;
-            gap: 8px !important;
-            background-color: transparent !important;
-            border: 1px solid var(--primary-color) !important;
-            color: var(--primary-color) !important;
-        }
-
-        
-        .css-1d391kg {
-            padding: 2rem 1rem;
-        }
-        
-        input[type="text"], input[type="password"] {
-            border-radius: 20px;
-            padding: 10px 15px;
-            border: 2px solid var(--primary-color);
-            transition: all 0.3s ease;
-        }
-      
-        .stTextInput>div>div>input:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 10px rgba(106,13,173,0.2);
-        }
-        
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            padding: 1rem 0;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-        
-        .car-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 1rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1rem 0;
-            transition: all 0.3s ease;
-            border: 1px solid #e1e1e8;
-        }
-        
-        .car-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .success-message {
-            background-color: #E8F5E9;
-            color: #2E7D32;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #2E7D32;
-        }
-        
-        .error-message {
-            background-color: #FFEBEE;
-            color: #C62828;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #C62828;
-        }
-        
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-        }
-        
-        .status-badge.pending {
-            background-color: #FFC107;
-            color: #333;
-        }
-        
-        .status-badge.approved {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .status-badge.rejected {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .admin-review-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5rem 0;
-            border: 1px solid #e1e1e8;
-        }
-        
-        .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .image-gallery img {
-            width: 100%;
-            border-radius: 10px;
-            transition: transform 0.3s ease;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        
-        .image-gallery img:hover {
-            transform: scale(1.05);
-        }
-
-        button[data-testid="baseButton-secondary"] {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            padding: 8px 16px !important;
-            height: 36px !important;
-        }
-
-        [data-testid="stMarkdownContainer"] svg,
-        .element-container svg,
-        .stMarkdown svg {
             width: 16px !important;
             height: 16px !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
+# Apply additional icon-specific fixes
+st.markdown("""
+    <style>
+        /* Override any dynamic icon sizing */
+        @media screen {
+            svg {
+                width: 16px !important;
+                height: 16px !important;
+            }
+        }
+    </style>
+""", unsafe_allow_html=True)
 # Load previous session if it exists
 session_data = load_session()
 
