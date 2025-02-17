@@ -611,22 +611,22 @@ def welcome_page():
         if st.button('Login', key='welcome_login_btn'):
             # Explicitly set the current page to login
             st.session_state.current_page = 'login'
-            # Force a rerun to update the page
-            st.experimental_rerun()
+            # Use st.rerun() instead of experimental_rerun()
+            st.rerun()
         
         # Add some vertical spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
         if st.button('Create Account', key='welcome_signup_btn'):
             st.session_state.current_page = 'signup'
-            st.experimental_rerun()
+            st.rerun()
         
         # Add some vertical spacing
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         
         if st.button('Browse Cars', key='welcome_browse_btn'):
             st.session_state.current_page = 'browse_cars'
-            st.experimental_rerun()
+            st.rerun()
 def login_page():
     st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
     
