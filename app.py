@@ -44,49 +44,28 @@ st.markdown("""
             --secondary-color: #6A0DAD;
             --background-color: #F4F4F8;
             --text-color: #333;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #FFC107;
         }
 
-       /* SVG and Button Fixes */
-button.st-emotion-cache-ocsh0s svg {
-    width: 20px !important;
-    height: 20px !important;
-}
+        /* SVG Fix - Add this at the top */
+        button svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+        }
 
-button[data-testid="stBaseButton-secondary"] svg {
-    width: 20px !important;
-    height: 20px !important;
-}
+        button.st-emotion-cache-ocsh0s svg,
+        button[data-testid="stBaseButton-secondary"] svg,
+        .st-emotion-cache-r421ms svg,
+        .e1d5ycv52 svg,
+        .stButton svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
 
-.st-emotion-cache-r421ms svg {
-    width: 20px !important;
-    height: 20px !important;
-}
-
-.e1d5ycv52 svg {
-    width: 20px !important;
-    height: 20px !important;
-}
-
-.stButton svg {
-    width: 20px !important;
-    height: 20px !important;
-}
-
-/* Back Button Fix */
-button[data-testid="stBaseButton-secondary"] {
-    display: inline-flex !important;
-    align-items: center !important;
-    padding: 8px 16px !important;
-    height: 38px !important;
-}
-
-/* Ensure all button SVGs have fixed sizes */
-button svg {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-}
         /* Global Styles */
         .stApp {
             background-color: var(--background-color);
@@ -94,10 +73,10 @@ button svg {
         }
 
         /* Button Styling */
-        .stButton>button {
+        .stButton > button {
             width: 100%;
             border-radius: 20px;
-            height: 3em;
+            height: 48px;
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -107,48 +86,74 @@ button svg {
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 16px;
         }
         
-        .stButton>button:hover {
+        .stButton > button:hover {
             background-color: var(--secondary-color);
             transform: translateY(-3px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
-        
-        /* Layout */
-        .css-1d391kg {
-            padding: 2rem 1rem;
+
+        /* Back Button Fix */
+        button[data-testid="stBaseButton-secondary"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding: 8px 16px !important;
+            height: 38px !important;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            width: auto !important;
+        }
+
+        button[data-testid="stBaseButton-secondary"]:hover {
+            background-color: var(--primary-color);
+            color: white;
         }
         
         /* Input Styling */
-        input[type="text"], input[type="password"] {
+        input[type="text"], 
+        input[type="password"],
+        input[type="email"],
+        input[type="number"],
+        .stTextInput > div > div > input {
             border-radius: 20px;
-            padding: 10px 15px;
+            padding: 12px 16px;
             border: 2px solid var(--primary-color);
             transition: all 0.3s ease;
+            width: 100%;
+            background-color: white;
         }
         
-        .stTextInput>div>div>input:focus {
+        .stTextInput > div > div > input:focus {
             border-color: var(--secondary-color);
             box-shadow: 0 0 10px rgba(106,13,173,0.2);
+            outline: none;
         }
         
         /* Headings */
         h1 {
             color: var(--primary-color);
             text-align: center;
-            padding: 1rem 0;
+            padding: 16px 0;
             font-weight: 700;
             letter-spacing: -1px;
+            font-size: 32px;
+            margin-bottom: 24px;
         }
         
         /* Card Styling */
         .car-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1rem;
+            padding: 24px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1rem 0;
+            margin: 16px 0;
             transition: all 0.3s ease;
             border: 1px solid #e1e1e8;
         }
@@ -161,27 +166,27 @@ button svg {
         /* Message Styling */
         .success-message {
             background-color: #E8F5E9;
-            color: #2E7D32;
-            padding: 1rem;
+            color: var(--success-color);
+            padding: 16px;
             border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #2E7D32;
+            margin: 16px 0;
+            border-left: 4px solid var(--success-color);
         }
         
         .error-message {
             background-color: #FFEBEE;
-            color: #C62828;
-            padding: 1rem;
+            color: var(--error-color);
+            padding: 16px;
             border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #C62828;
+            margin: 16px 0;
+            border-left: 4px solid var(--error-color);
         }
         
         /* Status Badge */
         .status-badge {
-            padding: 0.5rem 1rem;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 12px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -189,17 +194,17 @@ button svg {
         }
         
         .status-badge.pending {
-            background-color: #FFC107;
+            background-color: var(--warning-color);
             color: #333;
         }
         
         .status-badge.approved {
-            background-color: #28a745;
+            background-color: var(--success-color);
             color: white;
         }
         
         .status-badge.rejected {
-            background-color: #dc3545;
+            background-color: var(--error-color);
             color: white;
         }
         
@@ -207,9 +212,9 @@ button svg {
         .admin-review-card {
             background-color: white;
             border-radius: 15px;
-            padding: 1.5rem;
+            padding: 24px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5rem 0;
+            margin: 24px 0;
             border: 1px solid #e1e1e8;
         }
         
@@ -217,12 +222,13 @@ button svg {
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
+            gap: 16px;
+            margin: 16px 0;
         }
         
         .image-gallery img {
             width: 100%;
+            height: auto;
             border-radius: 10px;
             transition: transform 0.3s ease;
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
@@ -232,7 +238,61 @@ button svg {
             transform: scale(1.05);
         }
 
-    
+        /* Form Elements */
+        .stSelectbox {
+            margin: 8px 0;
+        }
+
+        .stSelectbox > div > div {
+            border-radius: 20px;
+        }
+
+        .stTextArea textarea {
+            border-radius: 15px;
+            padding: 12px;
+            border: 2px solid var(--primary-color);
+        }
+
+        /* Checkbox Styling */
+        .stCheckbox {
+            margin: 8px 0;
+        }
+
+        .stCheckbox > div > div > label {
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        /* Date Input Styling */
+        .stDateInput > div > div {
+            border-radius: 20px;
+        }
+
+        /* Layout Spacing */
+        .css-1d391kg {
+            padding: 32px 16px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .stButton > button {
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .car-card {
+                padding: 16px;
+            }
+
+            .image-gallery {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 16px;
+            }
+        }
     </style>
 """, unsafe_allow_html=True)
 
