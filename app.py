@@ -395,18 +395,22 @@ def create_user(full_name, email, phone, password, role='user'):
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials"""
     try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
         # Special case for admin
         if email == "admin@luxuryrentals.com" and password == "admin123":
             return True
-            
-        conn = sqlite3.connect('car_rental.db')
-        c = conn.cursor()
+        
+        # Hash the password
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Check credentials
         c.execute('SELECT password FROM users WHERE email = ?', (email,))
         result = c.fetchone()
         
-        if result and result[0] == hash_password(password):
+        if result and result[0] == hashed_password:
             return True
         return False
     except sqlite3.Error as e:
@@ -416,8 +420,8 @@ def verify_user(email, password):
         if 'conn' in locals():
             conn.close()
 
+
 def get_user_role(email):
-    """Get user's role from database"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -430,7 +434,7 @@ def get_user_role(email):
     finally:
         if 'conn' in locals():
             conn.close()
-
+            
 # Notification functions
 def create_notification(user_email, message, type):
     """Create a new notification"""
@@ -587,38 +591,44 @@ def welcome_page():
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
+        st.rerun()
     
     st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email')
-        password = st.text_input('Password', type='password')
-
-
-    
+        email = st.text_input('Email', key='login_email')
+        password = st.text_input('Password', type='password', key='login_password')
+        
         if st.button('Login', key='login_submit'):
+            # Verify user credentials
             if verify_user(email, password):
+                # Update session state
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-            
+                
                 # Get user role
                 role = get_user_role(email)
-            
+                
+                # Show success message
+                st.success('Login successful!')
+                
+                # Set next page based on role
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
                 else:
                     st.session_state.current_page = 'browse_cars'
-                st.success('Login successful!')
-                st.experimental_rerun()  # This will restart the app in the new page
+                    
+                # Add a small delay to allow the success message to be seen
+                time.sleep(1)
+                st.rerun()
             else:
-                st.error('Invalid credentials')
-
-        
+                st.error('Invalid email or password')
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
+            st.rerun()
 
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
