@@ -219,7 +219,6 @@ def setup_database():
         c = conn.cursor()
 
         
-        # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -231,6 +230,8 @@ def setup_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+
 
         # Create car_listings table
         c.execute('''
@@ -327,31 +328,31 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
-        # Create admin user
+       admin_email = 'admin@luxuryrentals.com'
         admin_password = hash_password('admin123')
-        c.execute('''
-            INSERT INTO users (full_name, email, phone, password, role)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            'Admin User',
-            'admin@luxuryrentals.com',
-            '+971500000000',
-            admin_password,
-            'admin'
-        ))
+        
+        try:
+            c.execute('''
+                INSERT INTO users (full_name, email, phone, password, role)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                'Admin User',
+                admin_email,
+                '+971500000000',
+                admin_password,
+                'admin'
+            ))
+            conn.commit()
+            print(f"Admin user created with email: {admin_email}")
+        except sqlite3.IntegrityError:
+            print("Admin user might already exist")
 
-       
-
-        conn.commit()
+        conn.close()
         print("Database initialized successfully")
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         raise
-    finally:
-        if conn:
-            conn.close()
-
 # Sample car data
 cars_data = {
     'Luxury': [
@@ -615,63 +616,78 @@ def welcome_page():
             st.session_state.current_page = 'browse_cars'
 
 def login_page():
-    if st.button('← Back to Welcome', key='login_back'):
-        st.session_state.current_page = 'welcome'
-    
-    st.markdown("<h1>Welcome Back</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Login Debugging</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        email = st.text_input('Email', key='login_email')
-        password = st.text_input('Password', type='password', key='login_password')
+        # Add a hidden header to force Streamlit to rerun
+        st.markdown("### Login Diagnostics")
         
-        if st.button('Login', key='login_submit'):
-            # Basic input validation
-            if not email or not password:
-                st.error("Please enter both email and password")
-                return
+        email = st.text_input('Email', key='login_email_debug')
+        password = st.text_input('Password', type='password', key='login_password_debug')
+        
+        # Debug: Print out current state before login attempt
+        st.write(f"Debug - Current Database Path: {os.path.abspath('car_rental.db')}")
+        st.write(f"Debug - Database Exists: {os.path.exists('car_rental.db')}")
+        
+        if st.button('Login', key='login_submit_debug'):
+            st.write("Login button clicked")
             
+            # Comprehensive logging
             try:
+                # Verify database connection
+                if not os.path.exists('car_rental.db'):
+                    st.error("Database file does not exist!")
+                    return
+                
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
                 
-                # Verify user credentials
-                c.execute('SELECT * FROM users WHERE email = ? AND password = ?', 
-                          (email, hash_password(password)))
+                # Debug: Check table structure
+                c.execute("PRAGMA table_info(users)")
+                columns = c.fetchall()
+                st.write("User Table Columns:")
+                for col in columns:
+                    st.write(col)
+                
+                # Hashed password for verification
+                hashed_password = hash_password(password)
+                
+                # Comprehensive query
+                c.execute('SELECT * FROM users WHERE email = ?', (email,))
                 user = c.fetchone()
                 
+                st.write("Debug - User Query Result:")
+                st.write(f"User found: {user is not None}")
+                
                 if user:
-                    # Successful login
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = email
+                    # Detailed password checking
+                    st.write(f"Stored Hashed Password: {user[4]}")
+                    st.write(f"Input Hashed Password: {hashed_password}")
                     
-                    # Determine user role
-                    role = user[5] if len(user) > 5 else 'user'
-                    
-                    # Save session
-                    save_session(email, 'browse_cars')
-                    
-                    # Navigate based on role
-                    if role == 'admin':
-                        st.session_state.current_page = 'admin_panel'
-                    else:
+                    if user[4] == hashed_password:
+                        st.success("Password Matched!")
+                        
+                        # Manual session state setting
+                        st.session_state.logged_in = True
+                        st.session_state.user_email = email
                         st.session_state.current_page = 'browse_cars'
-                    
-                    st.success('Login successful!')
-                    st.experimental_rerun()
+                        
+                        # Experimental rerun to update page
+                        st.experimental_rerun()
+                    else:
+                        st.error("Password does not match")
                 else:
-                    st.error("Invalid email or password")
+                    st.error(f"No user found with email: {email}")
                 
                 conn.close()
             
-            except sqlite3.Error as e:
-                st.error(f"Database error: {e}")
             except Exception as e:
-                st.error(f"An unexpected error occurred: {e}")
-        
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        if st.button('Forgot Password?', key='forgot_password'):
-            st.session_state.current_page = 'reset_password'
+                st.error(f"Login Error: {e}")
+                # Print full traceback
+                import traceback
+                st.write(traceback.format_exc())
+            
             
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
