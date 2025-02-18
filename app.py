@@ -517,7 +517,6 @@ def get_car_categories():
 
 # Image handling functions
 def save_uploaded_image(uploaded_file):
-    """Save uploaded image and return base64 string"""
     try:
         image = Image.open(uploaded_file)
         # Resize image if too large
@@ -538,6 +537,7 @@ def save_uploaded_image(uploaded_file):
     except Exception as e:
         print(f"Error processing image: {e}")
         return None
+
 
 def validate_image(uploaded_file):
     """Validate uploaded image"""
