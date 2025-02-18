@@ -1095,68 +1095,143 @@ def show_browse_page():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    query = '''
-        SELECT v.*, u.full_name as owner_name, u.rating as owner_rating
-        FROM vehicles v
-        JOIN users u ON v.owner_id = u.id
-        WHERE v.status = 'available'
-    '''
-    params = []
+    try:
+        # Base query
+        query = """
+            SELECT 
+                v.*,
+                u.full_name as owner_name,
+                u.rating as owner_rating,
+                u.profile_pic as owner_pic
+            FROM vehicles v
+            JOIN users u ON v.owner_id = u.id
+            WHERE v.status = 'available'
+        """
+        params = []
+        
+        # Add search filter
+        if search:
+            query += """ 
+                AND (
+                    v.make LIKE ? OR 
+                    v.model LIKE ? OR 
+                    v.year LIKE ? OR
+                    v.description LIKE ?
+                )
+            """
+            search_param = f"%{search}%"
+            params.extend([search_param] * 4)
+        
+        # Add category filter
+        if category != "All":
+            query += " AND v.category = ?"
+            params.append(category)
+        
+        # Add location filter
+        if location != "All":
+            query += " AND v.location = ?"
+            params.append(location)
+        
+        # Add price range filter
+        query += f" AND v.daily_rate BETWEEN {price_range[0]} AND {price_range[1]}"
+        
+        # Add sorting
+        query += " ORDER BY v.created_at DESC"
+        
+        # Execute query
+        c.execute(query, params)
+        vehicles = c.fetchall()
+        
+        if not vehicles:
+            st.info("No vehicles found matching your criteria.")
+            return
+        
+        # Display vehicles in a grid
+        for i in range(0, len(vehicles), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(vehicles):
+                    vehicle = vehicles[i + j]
+                    with cols[j]:
+                        # Card container
+                        st.markdown("""
+                            <div style='background-color: white; 
+                                      padding: 1rem; 
+                                      border-radius: 10px; 
+                                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                      margin-bottom: 1rem;'>
+                        """, unsafe_allow_html=True)
+                        
+                        # Vehicle image
+                        if vehicle[11]:  # images column
+                            primary_image = vehicle[11].split(',')[0]
+                            st.image(
+                                f"data:image/jpeg;base64,{primary_image}",
+                                caption=f"{vehicle[2]} {vehicle[3]}",  # make and model
+                                use_column_width=True
+                            )
+                        
+                        # Vehicle details
+                        st.markdown(f"""
+                            <h3 style='margin: 0.5rem 0;'>{vehicle[2]} {vehicle[3]} ({vehicle[4]})</h3>
+                            <p style='color: #1e88e5; font-size: 1.2rem; font-weight: 500;'>
+                                AED {vehicle[6]:,.2f}/day
+                            </p>
+                            <p>📍 {vehicle[7]}</p>
+                        """, unsafe_allow_html=True)
+                        
+                        # Vehicle features
+                        specs = json.loads(vehicle[8])  # specs column
+                        st.markdown("""
+                            <div style='margin: 0.5rem 0; font-size: 0.9rem;'>
+                        """, unsafe_allow_html=True)
+                        
+                        if specs.get('transmission'):
+                            st.write(f"⚙️ {specs['transmission']}")
+                        if specs.get('fuel_type'):
+                            st.write(f"⛽ {specs['fuel_type']}")
+                        if specs.get('features'):
+                            features = specs['features'][:3]  # Show first 3 features
+                            for feature in features:
+                                st.write(f"✓ {feature}")
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        # Owner info
+                        st.markdown(f"""
+                            <div style='display: flex; align-items: center; margin: 0.5rem 0;'>
+                                <img src="data:image/jpeg;base64,{vehicle[-1] or ''}" 
+                                     style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
+                                <div>
+                                    <small>Owner: {vehicle[-3]}</small><br>
+                                    <small>{'⭐' * int(vehicle[-2]) if vehicle[-2] else 'New'}</small>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Action buttons
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("View Details", key=f"view_{vehicle[0]}"):
+                                st.session_state.selected_vehicle = vehicle[0]
+                                st.session_state.page = "vehicle_details"
+                                st.experimental_rerun()
+                        with col2:
+                            if st.button("Book Now", key=f"book_{vehicle[0]}"):
+                                if not st.session_state.user_data:
+                                    st.warning("Please login to book")
+                                    st.session_state.page = "login"
+                                else:
+                                    st.session_state.selected_vehicle = vehicle[0]
+                                    st.session_state.page = "vehicle_details"
+                                st.experimental_rerun()
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
     
-    if search:
-        query += """ AND (
-            v.make LIKE ? OR v.model LIKE ? OR v.year LIKE ?
-        )"""
-        search_param = f"%{search}%"
-        params.extend([search_param, search_param, search_param])
-    
-    if category != "All":
-        query += " AND v.category = ?"
-        params.append(category)
-    
-    if location != "All":
-        query += " AND v.location = ?"
-        params.append(location)
-    
-    query += f" AND v.daily_rate BETWEEN {price_range[0]} AND {price_range[1]}"
-    query += " ORDER BY v.created_at DESC"
-    
-    c.execute(query, params)
-    vehicles = c.fetchall()
-    conn.close()
-    
-    if not vehicles:
-        st.info("No vehicles found matching your criteria.")
-        return
-    
-    # Display vehicles in a grid
-    cols = st.columns(3)
-    for idx, vehicle in enumerate(vehicles):
-        with cols[idx % 3]:
-            st.markdown(f"""
-                <div class="car-card">
-                    <img src="data:image/jpeg;base64,{vehicle[11].split(',')[0] if vehicle[11] else ''}"
-                         style="width:100%; height:200px; object-fit:cover; border-radius:8px;">
-                    <h3>{vehicle[2]} {vehicle[3]} ({vehicle[4]})</h3>
-                    <p class="price">AED {vehicle[6]}/day</p>
-                    <p>{vehicle[7]}</p>
-                    <p><small>Owner: {vehicle[-2]} ({'⭐' * int(vehicle[-1]) if vehicle[-1] else 'New'})</small></p>
-                    <div class="features">
-                        {json.loads(vehicle[10]).get('highlights', '')}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            if st.button("View Details", key=f"view_{vehicle[0]}"):
-                st.session_state.selected_vehicle = vehicle[0]
-                st.session_state.page = "vehicle_details"
-                st.experimental_rerun()
-            
-            if st.button("Book Now", key=f"book_{vehicle[0]}"):
-                st.session_state.selected_vehicle = vehicle[0]
-                st.session_state.page = "booking"
-                st.experimental_rerun()
-
+    except Exception as e:
+        st.error(f"Error loading vehicles: {str(e)}")
+    finally:
+        conn.close()
 def show_vehicle_details():
     if 'selected_vehicle' not in st.session_state:
         st.error("No vehicle selected")
