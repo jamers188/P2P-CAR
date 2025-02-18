@@ -1847,5 +1847,3 @@ if __name__ == '__main__':
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         print(f"Error details: {str(e)}")
-
-
