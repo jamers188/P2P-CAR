@@ -12,8 +12,6 @@ import json
 
 
 
-# Initialize database
-setup_database()
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
