@@ -1800,223 +1800,230 @@ def show_modify_booking():
     c = conn.cursor()
     
     # Get booking details
-    c.execute('''
+    query = """
         SELECT b.*, v.make, v.model, v.year, v.daily_rate, v.owner_id,
                u.full_name as owner_name, u.email as owner_email
         FROM bookings b
         JOIN vehicles v ON b.vehicle_id = v.id
         JOIN users u ON v.owner_id = u.id
         WHERE b.id = ?
-    ''', (booking_id,))
+    """
+    try:
+        c.execute(query, (booking_id,))
+        booking = c.fetchone()
+        
+        if not booking:
+            st.error("Booking not found")
+            st.session_state.page = "my_bookings"
+            st.experimental_rerun()
+            return
+        
+        st.title(f"Modify Booking - {booking[11]} {booking[12]}")  # make and model
+        
+        with st.form("modify_booking_form"):
+            # Original booking details for reference
+            st.info(f"""
+                Original Booking Details:
+                - Vehicle: {booking[11]} {booking[12]} ({booking[13]})
+                - Pickup: {booking[3]}
+                - Return: {booking[4]}
+                - Location: {booking[5]}
+                - Total Amount: AED {booking[6]:,.2f}
+            """)
+            
+            # New dates
+            col1, col2 = st.columns(2)
+            with col1:
+                new_pickup = st.date_input(
+                    "New Pickup Date",
+                    value=datetime.strptime(booking[3], '%Y-%m-%d').date(),
+                    min_value=datetime.now().date()
+                )
+            with col2:
+                new_return = st.date_input(
+                    "New Return Date",
+                    value=datetime.strptime(booking[4], '%Y-%m-%d').date(),
+                    min_value=new_pickup
+                )
+            
+            # New location
+            locations = ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah", "Dubai Mall"]
+            new_location = st.selectbox(
+                "New Pickup Location",
+                locations,
+                index=locations.index(booking[5])
+            )
+            
+            # Additional services
+            st.markdown("### Additional Services")
+            col1, col2 = st.columns(2)
+            with col1:
+                new_insurance = st.checkbox(
+                    "Insurance (AED 50/day)", 
+                    value=booking[8]  # insurance
+                )
+                new_driver = st.checkbox(
+                    "Driver Service (AED 200/day)", 
+                    value=booking[9]  # driver_service
+                )
+            with col2:
+                new_delivery = st.checkbox(
+                    "Car Delivery (AED 100)", 
+                    value=booking[10]  # delivery_service
+                )
+                new_vip = st.checkbox(
+                    "VIP Service (AED 300)", 
+                    value=booking[17] if len(booking) > 17 else False  # vip_service
+                )
+            
+            # Calculate new total
+            days = (new_return - new_pickup).days + 1
+            base_price = booking[14] * days  # daily_rate
+            insurance_cost = 50 * days if new_insurance else 0
+            driver_cost = 200 * days if new_driver else 0
+            delivery_cost = 100 if new_delivery else 0
+            vip_cost = 300 if new_vip else 0
+            new_total = base_price + insurance_cost + driver_cost + delivery_cost + vip_cost
+            
+            # Display cost breakdown
+            st.markdown("### Cost Breakdown")
+            st.write(f"Base Rate ({days} days): AED {base_price:,.2f}")
+            if new_insurance:
+                st.write(f"Insurance: AED {insurance_cost:,.2f}")
+            if new_driver:
+                st.write(f"Driver Service: AED {driver_cost:,.2f}")
+            if new_delivery:
+                st.write(f"Delivery: AED {delivery_cost:,.2f}")
+            if new_vip:
+                st.write(f"VIP Service: AED {vip_cost:,.2f}")
+            
+            st.markdown(f"### New Total: AED {new_total:,.2f}")
+            
+            # Show price difference
+            price_difference = new_total - booking[6]  # total_amount
+            if price_difference != 0:
+                color = "green" if price_difference < 0 else "red"
+                st.markdown(f"""
+                    <div style='color: {color}; font-weight: bold;'>
+                        Price Difference: {'-' if price_difference < 0 else '+'}AED {abs(price_difference):,.2f}
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # Special requests or notes
+            modification_notes = st.text_area(
+                "Special Requests or Notes",
+                placeholder="Any special requests or notes for the modification..."
+            )
+            
+            if st.form_submit_button("Update Booking"):
+                try:
+                    # Check if dates are available
+                    availability_query = """
+                        SELECT COUNT(*) FROM bookings
+                        WHERE vehicle_id = ?
+                        AND id != ?
+                        AND status = 'confirmed'
+                        AND (
+                            (start_date BETWEEN ? AND ?) OR
+                            (end_date BETWEEN ? AND ?) OR
+                            (? BETWEEN start_date AND end_date)
+                        )
+                    """
+                    c.execute(availability_query, (
+                        booking[2],  # vehicle_id
+                        booking_id,
+                        new_pickup.strftime('%Y-%m-%d'),
+                        new_return.strftime('%Y-%m-%d'),
+                        new_pickup.strftime('%Y-%m-%d'),
+                        new_return.strftime('%Y-%m-%d'),
+                        new_pickup.strftime('%Y-%m-%d')
+                    ))
+                    
+                    if c.fetchone()[0] > 0:
+                        st.error("Selected dates are not available. Please choose different dates.")
+                        return
+                    
+                    # Update booking
+                    update_query = """
+                        UPDATE bookings 
+                        SET start_date = ?,
+                            end_date = ?,
+                            pickup_location = ?,
+                            total_amount = ?,
+                            insurance = ?,
+                            driver_service = ?,
+                            delivery_service = ?,
+                            vip_service = ?,
+                            modification_notes = ?,
+                            last_modified = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """
+                    c.execute(update_query, (
+                        new_pickup.strftime('%Y-%m-%d'),
+                        new_return.strftime('%Y-%m-%d'),
+                        new_location,
+                        new_total,
+                        new_insurance,
+                        new_driver,
+                        new_delivery,
+                        new_vip,
+                        modification_notes,
+                        booking_id
+                    ))
+                    
+                    # Create modification history
+                    history_query = """
+                        INSERT INTO booking_modifications 
+                        (booking_id, modified_by, old_start_date, new_start_date,
+                         old_end_date, new_end_date, old_amount, new_amount,
+                         modification_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    c.execute(history_query, (
+                        booking_id,
+                        st.session_state.user_data['id'],
+                        booking[3],  # old start_date
+                        new_pickup.strftime('%Y-%m-%d'),
+                        booking[4],  # old end_date
+                        new_return.strftime('%Y-%m-%d'),
+                        booking[6],  # old total_amount
+                        new_total,
+                        modification_notes
+                    ))
+                    
+                    # Create notifications
+                    create_notification(
+                        st.session_state.user_data['id'],
+                        f"Your booking for {booking[11]} {booking[12]} has been modified.",
+                        "booking_modified"
+                    )
+                    
+                    create_notification(
+                        booking[15],  # owner_id
+                        f"Booking modification for your {booking[11]} {booking[12]}.",
+                        "booking_modified"
+                    )
+                    
+                    conn.commit()
+                    st.success("Booking updated successfully!")
+                    
+                    # Clear modification state and return to bookings
+                    del st.session_state.booking_to_modify
+                    st.session_state.page = "my_bookings"
+                    st.experimental_rerun()
+                    
+                except Exception as e:
+                    st.error(f"Error updating booking: {str(e)}")
+                finally:
+                    conn.close()
     
-    booking = c.fetchone()
-    
-    if not booking:
-        st.error("Booking not found")
+    except Exception as e:
+        st.error(f"Error loading booking details: {str(e)}")
         conn.close()
         st.session_state.page = "my_bookings"
         st.experimental_rerun()
-        return
-    
-    st.title(f"Modify Booking - {booking['make']} {booking['model']}")
-    
-    with st.form("modify_booking_form"):
-        # Original booking details for reference
-        st.info(f"""
-            Original Booking Details:
-            - Vehicle: {booking['make']} {booking['model']} ({booking['year']})
-            - Pickup: {booking['start_date']}
-            - Return: {booking['end_date']}
-            - Location: {booking['pickup_location']}
-            - Total Amount: AED {booking['total_amount']:,.2f}
-        """)
-        
-        # New dates
-        col1, col2 = st.columns(2)
-        with col1:
-            new_pickup = st.date_input(
-                "New Pickup Date",
-                value=datetime.strptime(booking['start_date'], '%Y-%m-%d').date(),
-                min_value=datetime.now().date()
-            )
-        with col2:
-            new_return = st.date_input(
-                "New Return Date",
-                value=datetime.strptime(booking['end_date'], '%Y-%m-%d').date(),
-                min_value=new_pickup
-            )
-        
-        # New location
-        locations = ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah", "Dubai Mall"]
-        new_location = st.selectbox(
-            "New Pickup Location",
-            locations,
-            index=locations.index(booking['pickup_location'])
-        )
-        
-        # Additional services
-        st.markdown("### Additional Services")
-        col1, col2 = st.columns(2)
-        with col1:
-            new_insurance = st.checkbox(
-                "Insurance (AED 50/day)", 
-                value=booking['insurance']
-            )
-            new_driver = st.checkbox(
-                "Driver Service (AED 200/day)", 
-                value=booking['driver_service']
-            )
-        with col2:
-            new_delivery = st.checkbox(
-                "Car Delivery (AED 100)", 
-                value=booking['delivery_service']
-            )
-            new_vip = st.checkbox(
-                "VIP Service (AED 300)", 
-                value=booking.get('vip_service', False)
-            )
-        
-        # Calculate new total
-        days = (new_return - new_pickup).days + 1
-        base_price = booking['daily_rate'] * days
-        insurance_cost = 50 * days if new_insurance else 0
-        driver_cost = 200 * days if new_driver else 0
-        delivery_cost = 100 if new_delivery else 0
-        vip_cost = 300 if new_vip else 0
-        new_total = base_price + insurance_cost + driver_cost + delivery_cost + vip_cost
-        
-        # Display cost breakdown
-        st.markdown("### Cost Breakdown")
-        st.write(f"Base Rate ({days} days): AED {base_price:,.2f}")
-        if new_insurance:
-            st.write(f"Insurance: AED {insurance_cost:,.2f}")
-        if new_driver:
-            st.write(f"Driver Service: AED {driver_cost:,.2f}")
-        if new_delivery:
-            st.write(f"Delivery: AED {delivery_cost:,.2f}")
-        if new_vip:
-            st.write(f"VIP Service: AED {vip_cost:,.2f}")
-        
-        st.markdown(f"### New Total: AED {new_total:,.2f}")
-        
-        # Show price difference
-        price_difference = new_total - booking['total_amount']
-        if price_difference != 0:
-            color = "green" if price_difference < 0 else "red"
-            st.markdown(f"""
-                <div style='color: {color}; font-weight: bold;'>
-                    Price Difference: {'-' if price_difference < 0 else '+'}AED {abs(price_difference):,.2f}
-                </div>
-            """, unsafe_allow_html=True)
-        
-        # Special requests or notes
-        modification_notes = st.text_area(
-            "Special Requests or Notes",
-            placeholder="Any special requests or notes for the modification..."
-        )
-        
-        if st.form_submit_button("Update Booking"):
-            try:
-                # Check if dates are available
-                c.execute('''
-                    SELECT COUNT(*) FROM bookings
-                    WHERE vehicle_id = ?
-                    AND id != ?
-                    AND status = 'confirmed'
-                    AND (
-                        (start_date BETWEEN ? AND ?) OR
-                        (end_date BETWEEN ? AND ?) OR
-                        (? BETWEEN start_date AND end_date)
-                    )
-                ''', (
-                    booking['vehicle_id'],
-                    booking_id,
-                    new_pickup.strftime('%Y-%m-%d'),
-                    new_return.strftime('%Y-%m-%d'),
-                    new_pickup.strftime('%Y-%m-%d'),
-                    new_return.strftime('%Y-%m-%d'),
-                    new_pickup.strftime('%Y-%m-%d')
-                ))
-                
-                if c.fetchone()[0] > 0:
-                    st.error("Selected dates are not available. Please choose different dates.")
-                    return
-                
-                # Update booking
-                c.execute('''
-                    UPDATE bookings 
-                    SET start_date = ?,
-                        end_date = ?,
-                        pickup_location = ?,
-                        total_amount = ?,
-                        insurance = ?,
-                        driver_service = ?,
-                        delivery_service = ?,
-                        vip_service = ?,
-                        modification_notes = ?,
-                        last_modified = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (
-                    new_pickup.strftime('%Y-%m-%d'),
-                    new_return.strftime('%Y-%m-%d'),
-                    new_location,
-                    new_total,
-                    new_insurance,
-                    new_driver,
-                    new_delivery,
-                    new_vip,
-                    modification_notes,
-                    booking_id
-                ))
-                
-                # Create modification history record
-                c.execute('''
-                    INSERT INTO booking_modifications 
-                    (booking_id, modified_by, old_start_date, new_start_date,
-                     old_end_date, new_end_date, old_amount, new_amount,
-                     modification_notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    booking_id,
-                    st.session_state.user_data['id'],
-                    booking['start_date'],
-                    new_pickup.strftime('%Y-%m-%d'),
-                    booking['end_date'],
-                    new_return.strftime('%Y-%m-%d'),
-                    booking['total_amount'],
-                    new_total,
-                    modification_notes
-                ))
-                
-                # Create notifications
-                create_notification(
-                    st.session_state.user_data['id'],
-                    f"Your booking for {booking['make']} {booking['model']} has been modified.",
-                    "booking_modified"
-                )
-                
-                create_notification(
-                    booking['owner_id'],
-                    f"Booking modification for your {booking['make']} {booking['model']}.",
-                    "booking_modified"
-                )
-                
-                # Send email notifications (implement based on your email service)
-                # send_booking_modification_email(booking['email'], booking_id, new_details)
-                # send_booking_modification_email(booking['owner_email'], booking_id, new_details)
-                
-                conn.commit()
-                st.success("Booking updated successfully!")
-                
-                # Clear the modification state and return to bookings
-                del st.session_state.booking_to_modify
-                st.session_state.page = "my_bookings"
-                st.experimental_rerun()
-                
-            except Exception as e:
-                st.error(f"Error updating booking: {str(e)}")
-            finally:
-                conn.close()
+
+
 
 def create_notification(user_id, message, notification_type):
     """Create a notification for a user"""
