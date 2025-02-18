@@ -815,9 +815,26 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
         for idx, car in enumerate(cars):
             with cols[idx % 3]:
                 specs = json.loads(car[8])  # Parse specs JSON
+                
+                # Create proper image URL
+                image_html = ""
+                if car[11]:  # If image data exists
+                    try:
+                        # Ensure the base64 string is complete and properly formatted
+                        image_data = car[11].strip()
+                        # Add proper data URL prefix if it doesn't exist
+                        if not image_data.startswith('data:image/jpeg;base64,'):
+                            image_data = f'data:image/jpeg;base64,{image_data}'
+                        image_html = f"<img src='{image_data}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>"
+                    except Exception as e:
+                        print(f"Error formatting image: {str(e)}")
+                        image_html = "<div style='width: 100%; height: 250px; background-color: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>No Image Available</div>"
+                else:
+                    image_html = "<div style='width: 100%; height: 250px; background-color: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>No Image Available</div>"
+                
                 st.markdown(f"""
                     <div class='car-card'>
-                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>
+                        {image_html}
                         <h3 style='color: #4B0082; margin: 1rem 0;'>{car[2]} ({car[3]})</h3>
                         <p style='color: #666;'>{format_currency(car[4])}/day</p>
                         <p style='color: #666;'>{car[5]}</p>
@@ -835,13 +852,12 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
                         'year': car[3],
                         'price': car[4],
                         'location': car[5],
-                        'specs': car[8],  # Keep it as is, let show_car_details handle parsing
+                        'specs': car[8],
                         'image': car[11],
                         'owner_email': car[1]
                     }
                     st.session_state.current_page = 'car_details'
                     st.rerun()
-                 
     
     conn.close()
 
