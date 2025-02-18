@@ -1,179 +1,236 @@
 import streamlit as st
+import pandas as pd
 import sqlite3
 import hashlib
 import os
-import stripe
-from datetime import datetime, timedelta
-from PIL import Image
-import base64
 import io
-import json
+import base64
+from PIL import Image
+from datetime import datetime
 
-# Stripe API setup
-STRIPE_SECRET_KEY = "your_stripe_secret_key"
-stripe.api_key = STRIPE_SECRET_KEY
+# ---- Page Configuration ----
+st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
-db_path = "permanent_car_rental.db"  # Permanent database
+# ---- CSS Styling ----
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #F4F4F8;
+            font-family: 'Inter', sans-serif;
+        }
+        .profile-pic {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-def init_db():
-    conn = sqlite3.connect(db_path)
+# ---- Permanent Database Setup ----
+DB_FILE = "permanent_car_rental.db"
+def setup_database():
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     
-    # Users table with profile picture support
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            full_name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            phone TEXT NOT NULL,
-            password TEXT NOT NULL,
-            profile_pic TEXT,
-            role TEXT DEFAULT 'user',
-            subscription TEXT DEFAULT 'free',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Insurance claims table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS insurance_claims (
-            id INTEGER PRIMARY KEY,
-            user_email TEXT NOT NULL,
-            car_id INTEGER NOT NULL,
-            claim_description TEXT,
-            claim_status TEXT DEFAULT 'pending',
-            images TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    ''')
-    
-    # Subscriptions table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS subscriptions (
-            id INTEGER PRIMARY KEY,
-            user_email TEXT UNIQUE NOT NULL,
-            plan TEXT NOT NULL,
-            start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            end_date TIMESTAMP NOT NULL,
-            status TEXT DEFAULT 'active',
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        )
-    ''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        profile_picture TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
     
     conn.commit()
     conn.close()
 
-# Hash password
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Save profile picture
-def save_profile_pic(uploaded_file):
-    image = Image.open(uploaded_file)
-    img_byte_arr = io.BytesIO()
-    image.save(img_byte_arr, format='JPEG')
-    return base64.b64encode(img_byte_arr.getvalue()).decode()
-
-# Subscription pricing
-def get_subscription_pricing(plan):
-    plans = {
-        "free": 0,
-        "premium": 20,
-        "elite": 50,
-        "host_premium": 50,
-        "host_elite": 100
-    }
-    return plans.get(plan, 0)
-
-# Process Stripe payment
-def process_payment(email, plan):
-    amount = get_subscription_pricing(plan) * 100  # Convert to cents
-    if amount == 0:
-        return False
-    
-    try:
-        charge = stripe.PaymentIntent.create(
-            amount=amount,
-            currency="usd",
-            description=f"Subscription for {plan} plan",
-            receipt_email=email
-        )
-        return charge['status'] == 'succeeded'
-    except Exception as e:
-        st.error(f"Payment failed: {e}")
-        return False
-
-# Subscription handling
-def subscribe_user(email, plan):
-    conn = sqlite3.connect(db_path)
+def create_user(full_name, email, phone, password, profile_picture=None):
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
+    hashed_pw = hash_password(password)
     
-    end_date = datetime.now() + timedelta(days=30)
-    c.execute('''
-        INSERT INTO subscriptions (user_email, plan, end_date) 
-        VALUES (?, ?, ?)
-        ON CONFLICT(user_email) DO UPDATE SET plan=?, end_date=?, status='active'
-    ''', (email, plan, end_date, plan, end_date))
+    c.execute('SELECT * FROM users WHERE email = ?', (email,))
+    if c.fetchone():
+        return False
     
-    c.execute('''UPDATE users SET subscription=? WHERE email=?''', (plan, email))
+    c.execute('''INSERT INTO users (full_name, email, phone, password, profile_picture)
+                 VALUES (?, ?, ?, ?, ?)''',
+                 (full_name, email, phone, hashed_pw, profile_picture))
     conn.commit()
     conn.close()
-    
-    st.success(f"You have successfully subscribed to the {plan.capitalize()} plan!")
+    return True
 
-# Show user profile
-def show_profile():
-    conn = sqlite3.connect(db_path)
+def verify_user(email, password):
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('SELECT full_name, profile_pic, subscription FROM users WHERE email=?', (st.session_state.user_email,))
+    c.execute('SELECT password FROM users WHERE email = ?', (email,))
+    result = c.fetchone()
+    conn.close()
+    return result and result[0] == hash_password(password)
+
+def get_user_details(email):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('SELECT full_name, profile_picture FROM users WHERE email = ?', (email,))
     user = c.fetchone()
     conn.close()
-    
-    if user:
-        full_name, profile_pic, subscription = user
-        st.sidebar.markdown(f"### {full_name}")
-        if profile_pic:
-            st.sidebar.image(f"data:image/jpeg;base64,{profile_pic}", width=100)
-        st.sidebar.markdown(f"**Subscription:** {subscription.capitalize()}")
+    return user
 
-# Claim insurance
-def claim_insurance():
-    st.markdown("## Claim Insurance")
-    claim_description = st.text_area("Describe the damage")
-    uploaded_images = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-    
-    if st.button("Submit Claim"):
-        image_data = [save_profile_pic(img) for img in uploaded_images]
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute('''INSERT INTO insurance_claims (user_email, car_id, claim_description, images) 
-                     VALUES (?, ?, ?, ?)''', 
-                  (st.session_state.user_email, 1, claim_description, json.dumps(image_data)))
-        conn.commit()
-        conn.close()
-        st.success("Claim submitted successfully!")
+def save_profile_picture(uploaded_file):
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format='JPEG')
+        return base64.b64encode(img_byte_arr.getvalue()).decode()
+    return None
 
-# Main function
-def main():
-    st.sidebar.title("Luxury Car Rentals")
-    show_profile()
+# ---- Sidebar Navigation ----
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = None
+
+if st.session_state.logged_in:
+    user_name, profile_picture = get_user_details(st.session_state.user_email)
+    with st.sidebar:
+        if profile_picture:
+            st.image(f"data:image/jpeg;base64,{profile_picture}", caption=user_name, width=100)
+        else:
+            st.write(f"Welcome, {user_name}")
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.user_email = None
+            st.rerun()
+
+# ---- User Authentication ----
+def login_page():
+    st.title("Login")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if verify_user(email, password):
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.success("Login Successful!")
+            st.rerun()
+        else:
+            st.error("Invalid Credentials")
+
+def signup_page():
+    st.title("Create Account")
+    full_name = st.text_input("Full Name")
+    email = st.text_input("Email")
+    phone = st.text_input("Phone Number")
+    password = st.text_input("Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+    profile_picture = st.file_uploader("Upload Profile Picture (Optional)", type=["jpg", "png"])
     
-    page = st.sidebar.radio("Navigation", ["Home", "Claim Insurance", "Subscribe"])
-    
-    if page == "Home":
-        st.title("Welcome to Luxury Car Rentals")
-        st.write("Premium car rental services with top-tier benefits.")
-    elif page == "Claim Insurance":
-        claim_insurance()
-    elif page == "Subscribe":
-        plan = st.selectbox("Choose a Subscription Plan", ["free", "premium", "elite", "host_premium", "host_elite"])
-        if st.button("Subscribe Now"):
-            if process_payment(st.session_state.user_email, plan):
-                subscribe_user(st.session_state.user_email, plan)
+    if st.button("Create Account"):
+        if password != confirm_password:
+            st.error("Passwords do not match")
+        else:
+            picture_data = save_profile_picture(profile_picture)
+            if create_user(full_name, email, phone, password, picture_data):
+                st.success("Account Created Successfully!")
+                st.session_state.current_page = 'login'
+                st.rerun()
             else:
-                st.error("Subscription failed. Try again.")
+                st.error("Email already exists")
 
-if __name__ == "__main__":
-    init_db()
-    main()
+
+# ---- Subscription Plans ----
+SUBSCRIPTION_PLANS = {
+    "renter": {
+        "Free": {"fee": 0, "benefits": ["Standard service fees", "No booking priority", "No special discounts"]},
+        "Premium": {"fee": 20, "benefits": ["Reduced service fees", "Priority booking", "10% discount on rentals"]},
+        "Elite VIP": {"fee": 50, "benefits": ["Lowest service fees", "First priority booking", "20% discount on rentals"]}
+    },
+    "host": {
+        "Free": {"fee": 0, "benefits": ["Standard listing visibility", "15% commission per booking"]},
+        "Premium": {"fee": 50, "benefits": ["Boosted visibility", "Lower commission (10%)"]},
+        "Elite": {"fee": 100, "benefits": ["Top placement", "Lowest commission (5%)"]}
+    }
+}
+
+# ---- Insurance Claims ----
+def submit_insurance_claim(user_email, car_id, description, proof_file):
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    image_data = base64.b64encode(proof_file.read()).decode()
+    c.execute("""
+        INSERT INTO insurance_claims (user_email, car_id, description, proof_image, status, created_at)
+        VALUES (?, ?, ?, ?, 'pending', ?)
+    """, (user_email, car_id, description, image_data, datetime.now()))
+    conn.commit()
+    conn.close()
+
+def view_insurance_claims():
+    st.markdown("# Insurance Claims")
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM insurance_claims")
+    claims = c.fetchall()
+    conn.close()
+    if claims:
+        for claim in claims:
+            st.write(f"**User:** {claim[1]} | **Car ID:** {claim[2]} | **Status:** {claim[5]}")
+            st.write(f"**Description:** {claim[3]}")
+            st.image(base64.b64decode(claim[4]), caption="Proof Image")
+            if st.button("Approve", key=f"approve_{claim[0]}"):
+                update_insurance_claim(claim[0], "approved")
+            if st.button("Reject", key=f"reject_{claim[0]}"):
+                update_insurance_claim(claim[0], "rejected")
+    else:
+        st.info("No insurance claims yet.")
+
+def update_insurance_claim(claim_id, status):
+    conn = sqlite3.connect('car_rental.db')
+    c = conn.cursor()
+    c.execute("UPDATE insurance_claims SET status = ? WHERE id = ?", (status, claim_id))
+    conn.commit()
+    conn.close()
+    st.success(f"Claim {status} successfully!")
+    st.experimental_rerun()
+
+# ---- About Us & SDG Section ----
+def about_us():
+    st.markdown("""
+        # About Us 🚗
+        Welcome to **Luxury Car Rentals**, where luxury meets convenience. Our mission is to provide premium car rental experiences
+        for tourists, expats, and luxury enthusiasts in Dubai.
+
+        ## Our SDG Commitment 🌍
+        We align with the **United Nations Sustainable Development Goals (SDGs)**:
+        - **SDG 12 (Responsible Consumption & Production):** We promote sustainable car-sharing practices to reduce carbon footprint.
+        - **SDG 11 (Sustainable Cities & Communities):** By optimizing vehicle usage, we contribute to smarter urban mobility.
+        - **SDG 9 (Industry, Innovation & Infrastructure):** Our AI-driven platform ensures efficient resource allocation.
+    """, unsafe_allow_html=True)
+
+# ---- Page Routing ----
+if not st.session_state.logged_in:
+    login_page()
+else:
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio("Go to", ["Dashboard", "List Car", "My Bookings", "Insurance Claims", "Subscriptions", "About Us"])
+    
+    if page == "Dashboard":
+        st.write("Welcome to the dashboard!")
+    elif page == "List Car":
+        list_your_car_page()
+    elif page == "My Bookings":
+        my_bookings_page()
+    elif page == "Insurance Claims":
+        if get_user_role(st.session_state.user_email) == "admin":
+            view_insurance_claims()
+        else:
+            submit_insurance_claim()
+    elif page == "Subscriptions":
+        manage_subscriptions()
+    elif page == "About Us":
+        about_us()
