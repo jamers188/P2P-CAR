@@ -247,15 +247,21 @@ def create_session(user_id):
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    
+    # Remove any existing sessions for this user
+    c.execute('DELETE FROM sessions WHERE user_id = ?', (user_id,))
+    
+    # Create new session
     c.execute('''
         INSERT INTO sessions (user_id, session_token, expires_at)
         VALUES (?, ?, ?)
     ''', (user_id, session_token, expires_at))
+    
     conn.commit()
     conn.close()
     
     return session_token
-
+    
 def verify_session(session_token):
     """Verify if a session is valid"""
     if not session_token:
@@ -277,33 +283,24 @@ def load_user_data():
     """Load user data from session"""
     if 'session_token' in st.session_state:
         user_id = verify_session(st.session_state.session_token)
-        if user:
-                # Create session if remember_me is checked
-                if remember_me:
-                    session_token = create_session(user[0])
-                    st.session_state.session_token = session_token
-                
-                # Update last login
-                conn = sqlite3.connect(DB_PATH)
-                c = conn.cursor()
-                c.execute('UPDATE users SET last_login = ? WHERE id = ?',
-                         (datetime.now(), user[0]))
-                conn.commit()
-                conn.close()
-                
-                # Set user data in session
+        if user_id:
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+            user_data = c.fetchone()
+            conn.close()
+            
+            if user_data:
                 st.session_state.user_data = {
-                    'id': user[0],
-                    'email': user[1],
-                    'full_name': user[3],
-                    'role': user[9]
+                    'id': user_data[0],
+                    'email': user_data[1],
+                    'full_name': user_data[3],
+                    'role': user_data[9]
                 }
-                
-                st.success("Login successful!")
-                st.session_state.page = "browse"
-                st.experimental_rerun()
-            else:
-                st.error("Invalid email or password")
+                return True
+    
+    st.session_state.user_data = None
+    return False
 
 def show_register_page():
     st.title("Create Account")
