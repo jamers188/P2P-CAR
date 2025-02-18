@@ -515,30 +515,109 @@ def get_car_categories():
         'Electric'
     ]
 
-# Image handling functions
 def save_uploaded_image(uploaded_file):
+    """
+    Save an uploaded image file as a base64 encoded string.
+    
+    Args:
+        uploaded_file: StreamlitUploadedFile object
+        
+    Returns:
+        str: Base64 encoded image string if successful, None if failed
+        
+    Raises:
+        Various exceptions are caught and logged
+    """
     try:
-        image = Image.open(uploaded_file)
+        # Validate input
+        if uploaded_file is None:
+            print("Error: No file provided")
+            return None
+            
+        # Log file details
+        print(f"Processing image: {uploaded_file.name}, Size: {uploaded_file.size} bytes")
+        
+        # Check file size (5MB limit)
+        if uploaded_file.size > 5 * 1024 * 1024:
+            print("Error: File too large (>5MB)")
+            return None
+            
+        # Open and validate image
+        try:
+            image = Image.open(uploaded_file)
+            print(f"Image opened successfully: Format={image.format}, Size={image.size}, Mode={image.mode}")
+        except Exception as e:
+            print(f"Error opening image: {str(e)}")
+            return None
+            
         # Resize image if too large
         max_size = (1200, 1200)
-        image.thumbnail(max_size, Image.LANCZOS)
+        if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
+            try:
+                image.thumbnail(max_size, Image.LANCZOS)
+                print(f"Image resized to: {image.size}")
+            except Exception as e:
+                print(f"Error resizing image: {str(e)}")
+                return None
         
-        # Convert to JPEG format
+        # Convert to RGB if necessary
         if image.mode in ('RGBA', 'P'):
-            image = image.convert('RGB')
-            
-        # Save to bytes
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='JPEG', quality=85)
-        img_byte_arr = img_byte_arr.getvalue()
+            try:
+                image = image.convert('RGB')
+                print(f"Image converted to RGB mode")
+            except Exception as e:
+                print(f"Error converting image mode: {str(e)}")
+                return None
+        
+        # Save to bytes with compression
+        try:
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='JPEG', quality=85, optimize=True)
+            img_byte_arr = img_byte_arr.getvalue()
+            print(f"Image compressed to {len(img_byte_arr)} bytes")
+        except Exception as e:
+            print(f"Error saving image to bytes: {str(e)}")
+            return None
         
         # Convert to base64
-        return base64.b64encode(img_byte_arr).decode()
+        try:
+            base64_str = base64.b64encode(img_byte_arr).decode('utf-8')
+            print(f"Successfully converted image to base64 string of length {len(base64_str)}")
+            
+            # Validate base64 string
+            if not base64_str:
+                print("Error: Empty base64 string")
+                return None
+                
+            # Verify the base64 string can be decoded
+            test_decode = base64.b64decode(base64_str)
+            if not test_decode:
+                print("Error: Invalid base64 string (decode test failed)")
+                return None
+                
+            return base64_str
+            
+        except Exception as e:
+            print(f"Error in base64 encoding: {str(e)}")
+            return None
+            
     except Exception as e:
-        print(f"Error processing image: {e}")
+        print(f"Unexpected error in save_uploaded_image: {str(e)}")
         return None
-
-
+    finally:
+        # Clean up
+        if 'image' in locals():
+            try:
+                image.close()
+            except:
+                pass
+            
+        if 'img_byte_arr' in locals():
+            try:
+                img_byte_arr.close()
+            except:
+                pass
+                
 def validate_image(uploaded_file):
     """Validate uploaded image"""
     try:
