@@ -2129,7 +2129,6 @@ def main():
     if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup']:
         st.session_state.current_page = 'welcome'
     
-    # Page rendering
     page_handlers = {
         'welcome': welcome_page,
         'login': login_page,
@@ -2142,8 +2141,8 @@ def main():
         'my_bookings': my_bookings_page,
         'owner_bookings': owner_bookings_page,
         'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') else browse_cars_page,
-        'book_car': book_car_page
-         'subscriptions': subscription_page, 
+        'book_car': book_car_page,
+        'subscriptions': subscription_page  # Make sure there's no trailing comma after the last item
     }
   
     # Authentication check for protected pages
