@@ -180,11 +180,11 @@ if 'selected_car' not in st.session_state:
     st.session_state.selected_car = None
 
 # Database setup
-def setup_database():
-    
+    try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-
+        
+        # Create users table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -193,23 +193,12 @@ def setup_database():
                 phone TEXT NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
-                profile_picture TEXT,  # Add this line
+                profile_picture TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS subscriptions (
-                id INTEGER PRIMARY KEY,
-                user_email TEXT UNIQUE NOT NULL,
-                plan_type TEXT NOT NULL,
-                start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                end_date TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE,
-                FOREIGN KEY (user_email) REFERENCES users (email)
-            )
-        ''')
 
-        # Create car_listings table
+        # Create car_listings table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS car_listings (
                 id INTEGER PRIMARY KEY,
@@ -227,7 +216,7 @@ def setup_database():
             )
         ''')
 
-        # Create listing_images table
+        # Create listing_images table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS listing_images (
                 id INTEGER PRIMARY KEY,
@@ -238,27 +227,8 @@ def setup_database():
                 FOREIGN KEY (listing_id) REFERENCES car_listings (id)
             )
         ''')
-        # In setup_database() function, modify the bookings table creation
 
-        # In setup_database() function
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS insurance_claims (
-                id INTEGER PRIMARY KEY,
-                booking_id INTEGER NOT NULL,
-                user_email TEXT NOT NULL,
-                claim_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                incident_type TEXT NOT NULL,
-                description TEXT NOT NULL,
-                damage_estimate REAL,
-                claim_status TEXT DEFAULT 'pending',
-                admin_comment TEXT,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id),
-                FOREIGN KEY (user_email) REFERENCES users (email)
-            )
-        ''')
-
-
-        # Create bookings table with all required columns
+        # Create bookings table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -283,10 +253,7 @@ def setup_database():
             )
         ''')
 
-  
-       
-
-        # Create notifications table
+        # Create notifications table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 id INTEGER PRIMARY KEY,
@@ -299,7 +266,7 @@ def setup_database():
             )
         ''')
 
-        # Create admin_reviews table
+        # Create admin_reviews table if not exists
         c.execute('''
             CREATE TABLE IF NOT EXISTS admin_reviews (
                 id INTEGER PRIMARY KEY,
@@ -313,6 +280,36 @@ def setup_database():
             )
         ''')
 
+        # Create insurance_claims table if not exists
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS insurance_claims (
+                id INTEGER PRIMARY KEY,
+                booking_id INTEGER NOT NULL,
+                user_email TEXT NOT NULL,
+                claim_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                incident_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                damage_estimate REAL,
+                claim_status TEXT DEFAULT 'pending',
+                admin_comment TEXT,
+                FOREIGN KEY (booking_id) REFERENCES bookings (id),
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+
+        # Create subscriptions table if not exists
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT UNIQUE NOT NULL,
+                plan_type TEXT NOT NULL,
+                start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                end_date TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+
         # Create indexes
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)')
@@ -320,25 +317,33 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
 
-        # Create admin user
-        admin_password = hash_password('admin123')
-        c.execute('''
-            INSERT INTO users (full_name, email, phone, password, role)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            'Admin User',
-            'admin@luxuryrentals.com',
-            '+971500000000',
-            admin_password,
-            'admin'
-        ))
-
-       
+        # Check if admin user exists
+        c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
+        if not c.fetchone():
+            # Create admin user
+            admin_password = hash_password('admin123')
+            c.execute('''
+                INSERT INTO users (full_name, email, phone, password, role)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                'Admin User',
+                'admin@luxuryrentals.com',
+                '+971500000000',
+                admin_password,
+                'admin'
+            ))
 
         conn.commit()
         print("Database initialized successfully")
-  
-        conn.close()
+        
+    except sqlite3.Error as e:
+        print(f"Database initialization error: {e}")
+        st.error(f"Database initialization error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+
 
 # Sample car data
 cars_data = {
@@ -602,7 +607,7 @@ def create_user(full_name, email, phone, password, profile_picture=None, role='u
         # Check if user already exists
         c.execute('SELECT * FROM users WHERE email = ?', (email,))
         if c.fetchone():
-            return False
+            return "exists"  # Indicate that user already exists
             
         # Create new user
         c.execute(
@@ -852,13 +857,12 @@ def login_page():
             st.session_state.current_page = 'reset_password'
 
 def signup_page():
+    st.markdown("<h1>Create Account</h1>", unsafe_allow_html=True)
+    
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
     
-    st.markdown("<h1>Create Account</h1>", unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1,2,1])
-    
     with col2:
         full_name = st.text_input('Full Name')
         email = st.text_input('Email')
@@ -880,11 +884,16 @@ def signup_page():
                 if profile_picture:
                     profile_pic_data = save_uploaded_image(profile_picture)
                 
-                if create_user(full_name, email, phone, password, profile_pic_data):
+                # Create user and handle different return values
+                result = create_user(full_name, email, phone, password, profile_pic_data)
+                
+                if result is True:
                     st.success('Account created successfully!')
                     st.session_state.current_page = 'login'
-                else:
+                elif result == "exists":
                     st.error('Email already exists')
+                else:
+                    st.error('Failed to create account')
 
 
 
@@ -1958,6 +1967,7 @@ def show_rejected_listings():
     show_listings_by_status('rejected')
 
 def main():
+    
     # Create necessary folders
     create_folder_structure()
     
