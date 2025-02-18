@@ -2077,11 +2077,16 @@ def main():
             print(f"Login verification error: {e}")
     
     # Sidebar for logged-in users
+
+           
     if st.session_state.logged_in:
         with st.sidebar:
             st.markdown("### My Account")
             st.write(f"Welcome, {st.session_state.user_email}")
-            
+             # Add subscription button
+            if st.button("💎 Subscriptions"):
+                st.session_state.current_page = 'subscriptions'
+                
             # Get user role
             role = get_user_role(st.session_state.user_email)
             
@@ -2138,8 +2143,9 @@ def main():
         'owner_bookings': owner_bookings_page,
         'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') else browse_cars_page,
         'book_car': book_car_page
+         'subscriptions': subscription_page, 
     }
-    
+  
     # Authentication check for protected pages
     protected_pages = [
         'list_your_car', 'my_listings', 'notifications', 
