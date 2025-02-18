@@ -9,6 +9,13 @@ import io
 import base64
 import json
 
+
+# Force database recreation
+if os.path.exists('car_rental.db'):
+    os.remove('car_rental.db')
+
+# Initialize database
+setup_database()
 # Page config and custom CSS
 st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
 
