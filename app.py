@@ -672,66 +672,217 @@ def show_admin_reports():
     # Date range selection
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("Start Date", 
-                                  value=datetime.now() - timedelta(days=30))
+        start_date = st.date_input(
+            "Start Date", 
+            value=datetime.now() - timedelta(days=30)
+        )
     with col2:
-        end_date = st.date_input("End Date", 
-                                value=datetime.now())
+        end_date = st.date_input(
+            "End Date", 
+            value=datetime.now()
+        )
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # Revenue metrics
-    c.execute('''
-        SELECT SUM(total_amount), COUNT(*), 
-               AVG(total_amount),
-               SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END)
-        FROM bookings
-        WHERE date(created_at) BETWEEN ? AND ?
-    ''', (start_date, end_date))
-    
-    total_revenue, total_bookings, avg_booking_value, paid_revenue = c.fetchone()
-    
-    # Display metrics
-    st.markdown("### Revenue Metrics")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Revenue", f"AED {total_revenue or 0:,.2f}")
-    with col2:
-        st.metric("Total Bookings", str(total_bookings or 0))
-    with col3:
-        st.metric("Average Booking Value", f"AED {avg_booking_value or 0:,.2f}")
-    with col4:
-        st.metric("Collected Revenue", f"AED {paid_revenue or 0:,.2f}")
-    
-    # Popular vehicles
-    st.markdown("### Popular Vehicles")
-    c.execute('''
-        SELECT v.make, v.model, COUNT(*) as bookings, 
-               SUM(b.total_amount) as revenue
-        FROM bookings b
-        JOIN vehicles v ON b.vehicle_id = v.id
-        WHERE date(b.created_at) BETWEEN ? AND ?
-        GROUP BY v.id
-        ORDER BY book_id:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-            user_data = c.fetchone()
-            conn.close()
+    try:
+        # Revenue metrics
+        c.execute("""
+            SELECT 
+                SUM(total_amount), 
+                COUNT(*), 
+                AVG(total_amount),
+                SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END)
+            FROM bookings
+            WHERE date(created_at) BETWEEN ? AND ?
+        """, (start_date, end_date))
+        
+        total_revenue, total_bookings, avg_booking_value, paid_revenue = c.fetchone()
+        
+        # Display metrics
+        st.markdown("### Revenue Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(
+                "Total Revenue", 
+                f"AED {total_revenue or 0:,.2f}"
+            )
+        with col2:
+            st.metric(
+                "Total Bookings", 
+                str(total_bookings or 0)
+            )
+        with col3:
+            st.metric(
+                "Average Booking Value", 
+                f"AED {avg_booking_value or 0:,.2f}"
+            )
+        with col4:
+            st.metric(
+                "Collected Revenue", 
+                f"AED {paid_revenue or 0:,.2f}"
+            )
+        
+        # Popular vehicles
+        st.markdown("### Popular Vehicles")
+        c.execute("""
+            SELECT 
+                v.make, 
+                v.model, 
+                COUNT(*) as booking_count, 
+                SUM(b.total_amount) as revenue,
+                AVG(b.total_amount) as avg_revenue,
+                v.daily_rate,
+                v.category
+            FROM bookings b
+            JOIN vehicles v ON b.vehicle_id = v.id
+            WHERE date(b.created_at) BETWEEN ? AND ?
+            GROUP BY v.id
+            ORDER BY booking_count DESC
+            LIMIT 10
+        """, (start_date, end_date))
+        
+        vehicles = c.fetchall()
+        
+        if vehicles:
+            for vehicle in vehicles:
+                with st.container():
+                    st.markdown(f"""
+                        <div style='background-color: white; padding: 15px; border-radius: 5px; margin-bottom: 10px;'>
+                            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                                <div>
+                                    <h4>{vehicle[0]} {vehicle[1]}</h4>
+                                    <p>Category: {vehicle[6]}</p>
+                                </div>
+                                <div style='text-align: right;'>
+                                    <p>Bookings: {vehicle[2]}</p>
+                                    <p>Revenue: AED {vehicle[3]:,.2f}</p>
+                                </div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.info("No booking data available for the selected period")
+        
+        # Booking trends
+        st.markdown("### Booking Trends")
+        c.execute("""
+            SELECT 
+                date(created_at) as booking_date,
+                COUNT(*) as booking_count,
+                SUM(total_amount) as daily_revenue
+            FROM bookings
+            WHERE date(created_at) BETWEEN ? AND ?
+            GROUP BY date(created_at)
+            ORDER BY booking_date
+        """, (start_date, end_date))
+        
+        trends = c.fetchall()
+        
+        if trends:
+            trend_data = {
+                'dates': [t[0] for t in trends],
+                'bookings': [t[1] for t in trends],
+                'revenue': [t[2] for t in trends]
+            }
             
-            if user_data:
-                st.session_state.user_data = {
-                    'id': user_data[0],
-                    'email': user_data[1],
-                    'full_name': user_data[3],
-                    'role': user_data[9]
-                }
-                return True
+            # Plot trends
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            
+            fig.add_trace(
+                go.Bar(
+                    x=trend_data['dates'],
+                    y=trend_data['bookings'],
+                    name="Bookings"
+                ),
+                secondary_y=False,
+            )
+            
+            fig.add_trace(
+                go.Line(
+                    x=trend_data['dates'],
+                    y=trend_data['revenue'],
+                    name="Revenue"
+                ),
+                secondary_y=True,
+            )
+            
+            fig.update_layout(
+                title="Daily Bookings and Revenue",
+                xaxis_title="Date",
+                yaxis_title="Number of Bookings",
+                yaxis2_title="Revenue (AED)"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Category performance
+        st.markdown("### Category Performance")
+        c.execute("""
+            SELECT 
+                v.category,
+                COUNT(*) as booking_count,
+                SUM(b.total_amount) as revenue,
+                AVG(b.total_amount) as avg_revenue
+            FROM bookings b
+            JOIN vehicles v ON b.vehicle_id = v.id
+            WHERE date(b.created_at) BETWEEN ? AND ?
+            GROUP BY v.category
+            ORDER BY revenue DESC
+        """, (start_date, end_date))
+        
+        categories = c.fetchall()
+        
+        if categories:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Bookings by category pie chart
+                fig = go.Figure(data=[go.Pie(
+                    labels=[cat[0] for cat in categories],
+                    values=[cat[1] for cat in categories],
+                    hole=.3
+                )])
+                fig.update_layout(title="Bookings by Category")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                # Revenue by category pie chart
+                fig = go.Figure(data=[go.Pie(
+                    labels=[cat[0] for cat in categories],
+                    values=[cat[2] for cat in categories],
+                    hole=.3
+                )])
+                fig.update_layout(title="Revenue by Category")
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # User statistics
+        st.markdown("### User Statistics")
+        c.execute("""
+            SELECT 
+                COUNT(*) as total_users,
+                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as new_users,
+                COUNT(DISTINCT user_id) as active_users
+            FROM users
+        """, (start_date, end_date))
+        
+        user_stats = c.fetchone()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Users", user_stats[0])
+        with col2:
+            st.metric("New Users", user_stats[1])
+        with col3:
+            st.metric("Active Users", user_stats[2])
     
-    st.session_state.user_data = None
-    return False
-
+    except Exception as e:
+        st.error(f"Error generating reports: {str(e)}")
+    finally:
+        conn.close()
 def show_privacy_policy():
     st.markdown("""
         ## Privacy Policy
