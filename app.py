@@ -338,7 +338,7 @@ def setup_database():
         conn.commit()
         print("Database initialized successfully")
   
-            conn.close()
+        conn.close()
 
 # Sample car data
 cars_data = {
