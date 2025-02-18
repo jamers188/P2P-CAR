@@ -867,9 +867,6 @@ def list_your_car_page():
                     ))
                     
                     listing_id = c.lastrowid
-                    
-                    # Save images
-                    # Modify this part of the image saving logic
                     for idx, file in enumerate(uploaded_files):
                         image_data = save_uploaded_image(file)
                         if image_data:
@@ -877,8 +874,8 @@ def list_your_car_page():
                                 INSERT INTO listing_images 
                                 (listing_id, image_data, is_primary)
                                 VALUES (?, ?, ?)
-                            ''', (listing_id, image_data, idx == 0))  # Only the first image is primary
-                    
+                            ''', (listing_id, image_data, idx == 0))
+                   
                     conn.commit()
                     
                     # Create notification
