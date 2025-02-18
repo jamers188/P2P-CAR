@@ -10,9 +10,7 @@ import base64
 import json
 
 
-# Force database recreation
-if os.path.exists('car_rental.db'):
-    os.remove('car_rental.db')
+
 
 # Initialize database
 setup_database()
@@ -2204,10 +2202,16 @@ def main():
         page_handlers.get(current_page, welcome_page)()
 
 if __name__ == '__main__':
+    # Force database recreation
+    if os.path.exists('car_rental.db'):
+        os.remove('car_rental.db')
+
+    # Initialize database
+    setup_database()
+    
     try:
         main()
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         print(f"Error details: {str(e)}")
-
 
