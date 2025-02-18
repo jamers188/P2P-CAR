@@ -337,12 +337,7 @@ def setup_database():
 
         conn.commit()
         print("Database initialized successfully")
-        
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-        raise
-    finally:
-        if conn:
+  
             conn.close()
 
 # Sample car data
