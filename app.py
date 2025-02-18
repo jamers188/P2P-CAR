@@ -2024,11 +2024,11 @@ def create_notification(user_id, message, notification_type):
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
-        c.execute('''
+        c.execute("""
             INSERT INTO notifications 
             (user_id, message, type, read_status, created_at)
             VALUES (?, ?, ?, FALSE, CURRENT_TIMESTAMP)
-        ''', (user_id, message, notification_type))
+        """, (user_id, message, notification_type))
         
         conn.commit()
     except Exception as e:
@@ -2048,54 +2048,116 @@ def show_notifications():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # Get all notifications for the user
-    c.execute('''
-        SELECT * FROM notifications
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-    ''', (st.session_state.user_data['id'],))
-    
-    notifications = c.fetchall()
-    
-    if not notifications:
-        st.info("No notifications")
-        return
-    
-    # Mark all as read option
-    if st.button("Mark All as Read"):
-        c.execute('''
-            UPDATE notifications
-            SET read_status = TRUE
-            WHERE user_id = ? AND read_status = FALSE
-        ''', (st.session_state.user_data['id'],))
-        conn.commit()
-        st.success("All notifications marked as read")
-        st.experimental_rerun()
-    
-    # Display notifications
-    for notif in notifications:
-        with st.container():
-            st.markdown(f"""
-                <div style='background-color: {'#f8f9fa' if notif['read_status'] else '#e3f2fd'}; 
-                          padding: 15px; border-radius: 5px; margin-bottom: 10px;'>
-                    <div style='display: flex; justify-content: space-between;'>
-                        <span>{notif['message']}</span>
-                        <small>{notif['created_at']}</small>
+    try:
+        # Get all notifications for the user
+        c.execute("""
+            SELECT * FROM notifications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (st.session_state.user_data['id'],))
+        
+        notifications = c.fetchall()
+        
+        if not notifications:
+            st.info("No notifications")
+            return
+        
+        # Mark all as read option
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("Mark All as Read"):
+                c.execute("""
+                    UPDATE notifications
+                    SET read_status = TRUE
+                    WHERE user_id = ? AND read_status = FALSE
+                """, (st.session_state.user_data['id'],))
+                conn.commit()
+                st.success("All notifications marked as read")
+                st.experimental_rerun()
+        
+        # Display notifications
+        for notif in notifications:
+            with st.container():
+                st.markdown(f"""
+                    <div style='background-color: {"#f8f9fa" if notif[4] else "#e3f2fd"}; 
+                              padding: 15px; border-radius: 5px; margin-bottom: 10px;'>
+                        <div style='display: flex; justify-content: space-between;'>
+                            <span>{notif[2]}</span>
+                            <small>{notif[5]}</small>
+                        </div>
+                        <div style='margin-top: 5px; font-size: 0.9em; color: #666;'>
+                            Type: {notif[3]}
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            if not notif['read_status']:
-                if st.button("Mark as Read", key=f"read_{notif['id']}"):
-                    c.execute('''
-                        UPDATE notifications
-                        SET read_status = TRUE
-                        WHERE id = ?
-                    ''', (notif['id'],))
-                    conn.commit()
-                    st.experimental_rerun()
+                """, unsafe_allow_html=True)
+                
+                if not notif[4]:  # if not read
+                    if st.button("Mark as Read", key=f"read_{notif[0]}"):
+                        c.execute("""
+                            UPDATE notifications
+                            SET read_status = TRUE
+                            WHERE id = ?
+                        """, (notif[0],))
+                        conn.commit()
+                        st.experimental_rerun()
     
-    conn.close()
+    except Exception as e:
+        st.error(f"Error loading notifications: {str(e)}")
+    finally:
+        conn.close()
+
+
+def setup_notifications_table():
+    """Create the notifications table in the database"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    try:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL,
+                read_status BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+        
+        # Create index for faster notification lookups
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_user 
+            ON notifications(user_id, read_status)
+        """)
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Error setting up notifications table: {str(e)}")
+    finally:
+        conn.close()
+
+def get_unread_notifications_count(user_id):
+    """Get the count of unread notifications for a user"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            SELECT COUNT(*) FROM notifications
+            WHERE user_id = ? AND read_status = FALSE
+        """, (user_id,))
+        
+        count = c.fetchone()[0]
+        return count
+    except Exception as e:
+        print(f"Error counting notifications: {str(e)}")
+        return 0
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
 
 # Initialize the application
 if __name__ == "__main__":
