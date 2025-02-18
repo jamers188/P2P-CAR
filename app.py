@@ -321,7 +321,7 @@ if 'selected_car' not in st.session_state:
         c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
         if not c.fetchone():
             # Create admin user
-            admin_password = hash_password('admin123')
+            admin_password = hash_password('admin')
             c.execute('''
                 INSERT INTO users (full_name, email, phone, password, role)
                 VALUES (?, ?, ?, ?, ?)
