@@ -618,7 +618,33 @@ def subscribe_user(user_email, plan_id):
         if 'conn' in locals():
             conn.close()
 
-
+def get_user_listings():
+    """Get listings for current user"""
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Get all listings for the current user
+        c.execute('''
+            SELECT cl.*, li.image_data
+            FROM car_listings cl
+            LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
+            WHERE cl.owner_email = ?
+            ORDER BY cl.created_at DESC
+        ''', (st.session_state.user_email,))
+        
+        # Fetch all listings and convert to list of dictionaries
+        columns = [description[0] for description in c.description]
+        listings = [dict(zip(columns, row)) for row in c.fetchall()]
+        
+        return listings
+        
+    except sqlite3.Error as e:
+        print(f"Error getting user listings: {e}")
+        return []
+    finally:
+        if 'conn' in locals():
+            conn.close()
 def subscription_page():
     st.markdown("<h1>Subscription Plans</h1>", unsafe_allow_html=True)
     
