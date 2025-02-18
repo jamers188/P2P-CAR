@@ -166,6 +166,43 @@ st.markdown("""
         .image-gallery img:hover {
             transform: scale(1.05);
         }
+
+        .subscription-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        
+        .subscription-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .subscription-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .subscription-card h4 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .features {
+            margin-top: 1rem;
+        }
+        
+        .features ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .features li {
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -189,7 +226,6 @@ def setup_database():
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
 
-        
         # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -200,6 +236,34 @@ def setup_database():
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create subscription_plans table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS subscription_plans (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                price REAL NOT NULL,
+                features TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create user_subscriptions table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS user_subscriptions (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                plan_id INTEGER NOT NULL,
+                start_date TIMESTAMP NOT NULL,
+                end_date TIMESTAMP NOT NULL,
+                auto_renew BOOLEAN DEFAULT TRUE,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users (email),
+                FOREIGN KEY (plan_id) REFERENCES subscription_plans (id)
             )
         ''')
 
@@ -217,6 +281,7 @@ def setup_database():
                 specs TEXT NOT NULL,
                 listing_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                commission_rate REAL DEFAULT 0.15,
                 FOREIGN KEY (owner_email) REFERENCES users (email)
             )
         ''')
@@ -232,11 +297,8 @@ def setup_database():
                 FOREIGN KEY (listing_id) REFERENCES car_listings (id)
             )
         ''')
-        # In setup_database() function, modify the bookings table creation
 
-    
-
-        # Create bookings table with all required columns
+        # Create bookings table with subscription-related fields
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -246,6 +308,9 @@ def setup_database():
                 return_date TEXT NOT NULL,
                 location TEXT NOT NULL,
                 total_price REAL NOT NULL,
+                base_price REAL NOT NULL,
+                discount_applied REAL DEFAULT 0,
+                service_fee REAL DEFAULT 0,
                 insurance BOOLEAN,
                 driver BOOLEAN,
                 delivery BOOLEAN,
@@ -256,13 +321,11 @@ def setup_database():
                 driver_price REAL DEFAULT 0,
                 delivery_price REAL DEFAULT 0,
                 vip_service_price REAL DEFAULT 0,
+                priority_level INTEGER DEFAULT 0,
                 FOREIGN KEY (user_email) REFERENCES users (email),
                 FOREIGN KEY (car_id) REFERENCES car_listings (id)
             )
         ''')
-
-  
-       
 
         # Create notifications table
         c.execute('''
@@ -291,12 +354,135 @@ def setup_database():
             )
         ''')
 
+        # Create support_tickets table for premium support
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id INTEGER PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                description TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                resolved_at TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users (email)
+            )
+        ''')
+
         # Create indexes
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON user_subscriptions(user_email, status)')
+
+        # Insert subscription plans
+        renter_plans = [
+            {
+                'name': 'Free Plan',
+                'type': 'renter',
+                'price': 0,
+                'features': json.dumps({
+                    'service_fees': 'standard',
+                    'booking_priority': 'none',
+                    'discounts': 'none',
+                    'cancellation': 'with_penalties',
+                    'roadside_assistance': False,
+                    'support': 'standard',
+                    'vehicle_access': 'general',
+                    'damage_protection': 'none'
+                })
+            },
+            {
+                'name': 'Premium Plan',
+                'type': 'renter',
+                'price': 20,
+                'features': json.dumps({
+                    'service_fees': 'reduced',
+                    'booking_priority': 'medium',
+                    'discounts': '10%',
+                    'cancellation': 'limited_free',
+                    'roadside_assistance': True,
+                    'support': 'fast',
+                    'vehicle_access': 'luxury',
+                    'damage_protection': 'partial'
+                })
+            },
+            {
+                'name': 'Elite VIP Plan',
+                'type': 'renter',
+                'price': 50,
+                'features': json.dumps({
+                    'service_fees': 'lowest',
+                    'booking_priority': 'highest',
+                    'discounts': '20%',
+                    'cancellation': 'unlimited_free',
+                    'roadside_assistance': 'premium',
+                    'support': '24_7',
+                    'vehicle_access': 'all',
+                    'damage_protection': 'full',
+                    'upgrades': True,
+                    'concierge': True
+                })
+            }
+        ]
+
+        host_plans = [
+            {
+                'name': 'Free Plan',
+                'type': 'host',
+                'price': 0,
+                'features': json.dumps({
+                    'visibility': 'standard',
+                    'commission': '15%',
+                    'pricing_tools': False,
+                    'damage_protection': 'basic',
+                    'fraud_prevention': 'basic',
+                    'payout_speed': 'standard',
+                    'support': 'standard',
+                    'marketing': 'none'
+                })
+            },
+            {
+                'name': 'Premium Plan',
+                'type': 'host',
+                'price': 50,
+                'features': json.dumps({
+                    'visibility': 'boosted',
+                    'commission': '10%',
+                    'pricing_tools': True,
+                    'damage_protection': 'extra',
+                    'fraud_prevention': 'enhanced',
+                    'payout_speed': 'fast',
+                    'support': 'priority',
+                    'marketing': 'promotional'
+                })
+            },
+            {
+                'name': 'Elite Plan',
+                'type': 'host',
+                'price': 100,
+                'features': json.dumps({
+                    'visibility': 'top',
+                    'commission': '5%',
+                    'pricing_tools': 'advanced',
+                    'damage_protection': 'full',
+                    'fraud_prevention': 'ai_based',
+                    'payout_speed': 'instant',
+                    'support': 'dedicated',
+                    'marketing': 'featured'
+                })
+            }
+        ]
+
+        # Insert all subscription plans
+        for plan in renter_plans + host_plans:
+            c.execute('''
+                INSERT INTO subscription_plans 
+                (name, type, price, features)
+                VALUES (?, ?, ?, ?)
+            ''', (plan['name'], plan['type'], plan['price'], plan['features']))
 
         # Create admin user
         admin_password = hash_password('admin123')
@@ -311,10 +497,26 @@ def setup_database():
             'admin'
         ))
 
-       
+        # Subscribe admin to Elite plans
+        c.execute('SELECT id FROM subscription_plans WHERE name = "Elite VIP Plan" AND type = "renter"')
+        renter_plan_id = c.fetchone()[0]
+        
+        c.execute('SELECT id FROM subscription_plans WHERE name = "Elite Plan" AND type = "host"')
+        host_plan_id = c.fetchone()[0]
+
+        # Set admin subscriptions
+        current_time = datetime.now()
+        end_time = current_time + timedelta(days=365)  # 1 year subscription
+
+        for plan_id in [renter_plan_id, host_plan_id]:
+            c.execute('''
+                INSERT INTO user_subscriptions 
+                (user_email, plan_id, start_date, end_date)
+                VALUES (?, ?, ?, ?)
+            ''', ('admin@luxuryrentals.com', plan_id, current_time, end_time))
 
         conn.commit()
-        print("Database initialized successfully")
+        print("Database initialized successfully with subscription plans")
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -356,6 +558,128 @@ cars_data = {
         }
     ]
 }
+
+
+def get_user_subscription(user_email):
+    """Get current active subscription for a user"""
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT us.*, sp.*
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE us.user_email = ? 
+            AND us.status = 'active'
+            AND us.end_date > ?
+        ''', (user_email, datetime.now()))
+        
+        result = c.fetchone()
+        return result if result else None
+        
+    except sqlite3.Error as e:
+        print(f"Error getting subscription: {e}")
+        return None
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def subscribe_user(user_email, plan_id):
+    """Subscribe a user to a plan"""
+    try:
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        
+        # Deactivate any existing subscriptions
+        c.execute('''
+            UPDATE user_subscriptions
+            SET status = 'inactive'
+            WHERE user_email = ? AND status = 'active'
+        ''', (user_email,))
+        
+        # Create new subscription
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=30)  # 30-day subscription
+        
+        c.execute('''
+            INSERT INTO user_subscriptions
+            (user_email, plan_id, start_date, end_date)
+            VALUES (?, ?, ?, ?)
+        ''', (user_email, plan_id, start_date, end_date))
+        
+        conn.commit()
+        return True
+        
+    except sqlite3.Error as e:
+        print(f"Error creating subscription: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def subscription_page():
+    st.markdown("<h1>Subscription Plans</h1>", unsafe_allow_html=True)
+    
+    if st.button('← Back to Browse'):
+        st.session_state.current_page = 'browse_cars'
+        st.rerun()
+    
+    # Get user's current subscription
+    current_subscription = get_user_subscription(st.session_state.user_email)
+    
+    # Get user role
+    user_role = get_user_role(st.session_state.user_email)
+    is_host = any(listing['owner_email'] == st.session_state.user_email for listing in get_user_listings())
+    
+    # Show both renter and host plans if user is a host
+    plan_types = ['renter', 'host'] if is_host else ['renter']
+    
+    for plan_type in plan_types:
+        st.markdown(f"### {plan_type.capitalize()} Plans")
+        
+        # Get plans from database
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        c.execute('SELECT * FROM subscription_plans WHERE type = ?', (plan_type,))
+        plans = c.fetchall()
+        conn.close()
+        
+        # Display plans in columns
+        cols = st.columns(len(plans))
+        for idx, plan in enumerate(plans):
+            with cols[idx]:
+                st.markdown(f"""
+                    <div class='subscription-card'>
+                        <h3>{plan[1]}</h3>
+                        <h4>{'Free' if plan[3] == 0 else f'${plan[3]}/month'}</h4>
+                        <div class='features'>
+                            {format_features(json.loads(plan[4]))}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Subscribe button
+                if current_subscription and current_subscription[1] == plan[0]:
+                    st.success("Current Plan")
+                else:
+                    if st.button(f"Subscribe to {plan[1]}", key=f"sub_{plan_type}_{plan[0]}"):
+                        if subscribe_user(st.session_state.user_email, plan[0]):
+                            st.success(f"Successfully subscribed to {plan[1]}!")
+                            st.rerun()
+                        else:
+                            st.error("Error subscribing to plan")
+
+def format_features(features):
+    """Format features dictionary into HTML list"""
+    html = "<ul>"
+    for key, value in features.items():
+        formatted_key = key.replace('_', ' ').title()
+        html += f"<li>{formatted_key}: {str(value)}</li>"
+    html += "</ul>"
+    return html
+
 
 # Authentication functions
 def hash_password(password):
