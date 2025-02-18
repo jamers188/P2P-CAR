@@ -1168,241 +1168,268 @@ def show_vehicle_details():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    c.execute('''
-        SELECT v.*, u.full_name as owner_name, u.email as owner_email
-        FROM vehicles v
-        JOIN users u ON v.owner_id = u.id
-        WHERE v.id = ?
-    ''', (st.session_state.selected_vehicle,))
-    
-    vehicle = c.fetchone()
-    
-    if not vehicle:
-        st.error("Vehicle not found")
-        conn.close()
-        st.session_state.page = "browse"
-        st.experimental_rerun()
-        return
+    try:
+        # Get vehicle details
+        c.execute("""
+            SELECT v.*, u.full_name as owner_name, u.email as owner_email
+            FROM vehicles v
+            JOIN users u ON v.owner_id = u.id
+            WHERE v.id = ?
+        """, (st.session_state.selected_vehicle,))
+        
+        vehicle = c.fetchone()
+        
+        if not vehicle:
+            st.error("Vehicle not found")
+            st.session_state.page = "browse"
+            st.experimental_rerun()
+            return
 
-    # Back button
-    if st.button("← Back to Browse"):
-        st.session_state.page = "browse"
-        st.experimental_rerun()
+        # Back button
+        if st.button("← Back to Browse"):
+            st.session_state.page = "browse"
+            st.experimental_rerun()
 
-    # Main content
-    col1, col2 = st.columns([2, 1])
+        # Main content
+        col1, col2 = st.columns([2, 1])
 
-    with col1:
-        # Vehicle images
-        if vehicle[11]:  # images column
-            images = vehicle[11].split(',')
-            image_cols = st.columns(len(images))
-            for idx, img in enumerate(images):
-                with image_cols[idx]:
-                    st.image(
-                        f"data:image/jpeg;base64,{img}",
-                        caption=f"Image {idx + 1}",
-                        use_column_width=True
-                    )
+        with col1:
+            # Vehicle images
+            if vehicle[11]:  # images column
+                images = vehicle[11].split(',')
+                image_cols = st.columns(len(images))
+                for idx, img in enumerate(images):
+                    with image_cols[idx]:
+                        st.image(
+                            f"data:image/jpeg;base64,{img}",
+                            caption=f"Image {idx + 1}",
+                            use_column_width=True
+                        )
 
-        # Vehicle information
-        st.title(f"{vehicle[2]} {vehicle[3]} ({vehicle[4]})")
-        st.subheader(f"AED {vehicle[6]:,.2f} per day")
+            # Vehicle information
+            st.title(f"{vehicle[2]} {vehicle[3]} ({vehicle[4]})")
+            st.subheader(f"AED {vehicle[6]:,.2f} per day")
 
-        # Specifications
-        st.markdown("### Specifications")
-        specs = json.loads(vehicle[8])  # specs column
-        cols = st.columns(2)
-        with cols[0]:
-            st.write("🚗 Make:", vehicle[2])
-            st.write("📅 Year:", vehicle[4])
-            st.write("⚙️ Transmission:", specs.get('transmission', 'N/A'))
-        with cols[1]:
-            st.write("🏎️ Model:", vehicle[3])
-            st.write("🌍 Category:", vehicle[7])
-            st.write("⛽ Fuel Type:", specs.get('fuel_type', 'N/A'))
+            # Specifications
+            st.markdown("### Specifications")
+            specs = json.loads(vehicle[8])  # specs column
+            cols = st.columns(2)
+            with cols[0]:
+                st.write("🚗 Make:", vehicle[2])
+                st.write("📅 Year:", vehicle[4])
+                st.write("⚙️ Transmission:", specs.get('transmission', 'N/A'))
+            with cols[1]:
+                st.write("🏎️ Model:", vehicle[3])
+                st.write("🌍 Category:", vehicle[7])
+                st.write("⛽ Fuel Type:", specs.get('fuel_type', 'N/A'))
 
-        # Features and amenities
-        st.markdown("### Features & Amenities")
-        features = specs.get('features', [])
-        feature_cols = st.columns(3)
-        for idx, feature in enumerate(features):
-            with feature_cols[idx % 3]:
-                st.write(f"✓ {feature}")
+            # Features and amenities
+            st.markdown("### Features & Amenities")
+            features = specs.get('features', [])
+            feature_cols = st.columns(3)
+            for idx, feature in enumerate(features):
+                with feature_cols[idx % 3]:
+                    st.write(f"✓ {feature}")
 
-        # Description
-        st.markdown("### Description")
-        st.write(vehicle[6])
+            # Description
+            st.markdown("### Description")
+            st.write(vehicle[5])  # description
 
-    with col2:
-        # Booking widget
-        st.markdown("""
-            <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3>Book this vehicle</h3>
-            </div>
-        """, unsafe_allow_html=True)
+        with col2:
+            # Booking widget
+            st.markdown("""
+                <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                <h3>Book this vehicle</h3>
+                </div>
+            """, unsafe_allow_html=True)
 
-        with st.form("booking_form"):
-            # Date selection
-            pickup_date = st.date_input(
-                "Pickup Date",
-                min_value=datetime.now().date(),
-                value=datetime.now().date()
-            )
-            return_date = st.date_input(
-                "Return Date",
-                min_value=pickup_date,
-                value=pickup_date + timedelta(days=1)
-            )
+            with st.form("booking_form"):
+                # Date selection
+                pickup_date = st.date_input(
+                    "Pickup Date",
+                    min_value=datetime.now().date(),
+                    value=datetime.now().date()
+                )
+                return_date = st.date_input(
+                    "Return Date",
+                    min_value=pickup_date,
+                    value=pickup_date + timedelta(days=1)
+                )
 
-            # Location
-            location = st.selectbox(
-                "Pickup Location",
-                ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah", "Dubai Mall"]
-            )
+                # Location
+                location = st.selectbox(
+                    "Pickup Location",
+                    ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah", "Dubai Mall"]
+                )
 
-            # Additional services
-            st.markdown("### Additional Services")
-            insurance = st.checkbox("Insurance (AED 50/day)")
-            driver = st.checkbox("Driver (AED 200/day)")
-            delivery = st.checkbox("Car Delivery (AED 100)")
+                # Additional services
+                st.markdown("### Additional Services")
+                insurance = st.checkbox("Insurance (AED 50/day)")
+                driver = st.checkbox("Driver (AED 200/day)")
+                delivery = st.checkbox("Car Delivery (AED 100)")
 
-            # Calculate total
-            days = (return_date - pickup_date).days + 1
-            base_price = vehicle[6] * days
-            insurance_cost = 50 * days if insurance else 0
-            driver_cost = 200 * days if driver else 0
-            delivery_cost = 100 if delivery else 0
-            total_cost = base_price + insurance_cost + driver_cost + delivery_cost
+                # Calculate total
+                days = (return_date - pickup_date).days + 1
+                base_price = vehicle[6] * days
+                insurance_cost = 50 * days if insurance else 0
+                driver_cost = 200 * days if driver else 0
+                delivery_cost = 100 if delivery else 0
+                total_cost = base_price + insurance_cost + driver_cost + delivery_cost
 
-            # Display cost breakdown
-            st.markdown("### Cost Breakdown")
-            st.write(f"Base Rate ({days} days): AED {base_price:,.2f}")
-            if insurance:
-                st.write(f"Insurance: AED {insurance_cost:,.2f}")
-            if driver:
-                st.write(f"Driver Service: AED {driver_cost:,.2f}")
-            if delivery:
-                st.write(f"Delivery Fee: AED {delivery_cost:,.2f}")
-            st.markdown(f"### Total: AED {total_cost:,.2f}")
+                # Display cost breakdown
+                st.markdown("### Cost Breakdown")
+                st.write(f"Base Rate ({days} days): AED {base_price:,.2f}")
+                if insurance:
+                    st.write(f"Insurance: AED {insurance_cost:,.2f}")
+                if driver:
+                    st.write(f"Driver Service: AED {driver_cost:,.2f}")
+                if delivery:
+                    st.write(f"Delivery Fee: AED {delivery_cost:,.2f}")
+                st.markdown(f"### Total: AED {total_cost:,.2f}")
 
-            # Submit button
-            submitted = st.form_submit_button("Book Now")
-            if submitted:
-                if not st.session_state.user_data:
-                    st.warning("Please login to book this vehicle")
-                    st.session_state.page = "login"
-                    st.experimental_rerun()
-                else:
-                    try:
-                        # Create booking record
-                        c.execute('''
-                            INSERT INTO bookings 
-                            (user_id, vehicle_id, start_date, end_date, 
-                             pickup_location, total_amount, insurance,
-                             driver_service, delivery_service)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', (
-                            st.session_state.user_data['id'],
+                # Submit button
+                submitted = st.form_submit_button("Book Now")
+                if submitted:
+                    if not st.session_state.user_data:
+                        st.warning("Please login to book this vehicle")
+                        st.session_state.page = "login"
+                        st.experimental_rerun()
+                    else:
+                        # Check availability
+                        c.execute("""
+                            SELECT COUNT(*) FROM bookings
+                            WHERE vehicle_id = ?
+                            AND status != 'cancelled'
+                            AND (
+                                (start_date BETWEEN ? AND ?) OR
+                                (end_date BETWEEN ? AND ?) OR
+                                (? BETWEEN start_date AND end_date)
+                            )
+                        """, (
                             vehicle[0],
                             pickup_date.strftime('%Y-%m-%d'),
                             return_date.strftime('%Y-%m-%d'),
-                            location,
-                            total_cost,
-                            insurance,
-                            driver,
-                            delivery
+                            pickup_date.strftime('%Y-%m-%d'),
+                            return_date.strftime('%Y-%m-%d'),
+                            pickup_date.strftime('%Y-%m-%d')
                         ))
-                        conn.commit()
+                        
+                        if c.fetchone()[0] > 0:
+                            st.error("Vehicle is not available for selected dates")
+                            return
 
-                        # Send notifications
-                        create_notification(
-                            st.session_state.user_data['id'],
-                            f"Booking confirmed for {vehicle[2]} {vehicle[3]}",
-                            "booking_confirmation"
-                        )
-                        create_notification(
-                            vehicle[1],  # owner_id
-                            f"New booking for your {vehicle[2]} {vehicle[3]}",
-                            "new_booking"
-                        )
-
-                        st.success("Booking confirmed! Check your email for details.")
-                        st.session_state.page = "my_bookings"
-                        st.experimental_rerun()
-
-                    except Exception as e:
-                        st.error(f"Booking failed: {str(e)}")
-                    finally:
-                        conn.close()
-
-    # Reviews section
-    st.markdown("### Customer Reviews")
-    c.execute('''
-        SELECT r.*, u.full_name, u.profile_pic
-        FROM reviews r
-        JOIN users u ON r.user_id = u.id
-        WHERE r.vehicle_id = ?
-        ORDER BY r.created_at DESC
-    ''', (vehicle[0],))
-    
-    reviews = c.fetchall()
-    
-    if not reviews:
-        st.info("No reviews yet for this vehicle.")
-    else:
-        for review in reviews:
-            with st.container():
-                col1, col2 = st.columns([1, 5])
-                with col1:
-                    if review[7]:  # profile_pic
-                        st.image(
-                            f"data:image/jpeg;base64,{review[7]}",
-                            width=50
-                        )
-                with col2:
-                    st.markdown(f"""
-                        <div style='background-color: white; padding: 10px; border-radius: 5px;'>
-                            <p><strong>{review[6]}</strong> • {'⭐' * review[4]}</p>
-                            <p>{review[5]}</p>
-                            <small>{review[3].split()[0]}</small>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-        # Add review if user has rented this vehicle
-        if st.session_state.user_data:
-            c.execute('''
-                SELECT id FROM bookings 
-                WHERE user_id = ? AND vehicle_id = ? AND status = 'completed'
-                LIMIT 1
-            ''', (st.session_state.user_data['id'], vehicle[0]))
-            
-            if c.fetchone():
-                with st.form("review_form"):
-                    st.markdown("### Write a Review")
-                    rating = st.slider("Rating", 1, 5, 5)
-                    comment = st.text_area("Your Review")
-                    
-                    if st.form_submit_button("Submit Review"):
                         try:
-                            c.execute('''
-                                INSERT INTO reviews 
-                                (user_id, vehicle_id, rating, comment)
-                                VALUES (?, ?, ?, ?)
-                            ''', (
+                            # Create booking record
+                            c.execute("""
+                                INSERT INTO bookings 
+                                (user_id, vehicle_id, start_date, end_date, 
+                                 pickup_location, total_amount, insurance,
+                                 driver_service, delivery_service, status)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                            """, (
                                 st.session_state.user_data['id'],
                                 vehicle[0],
-                                rating,
-                                comment
+                                pickup_date.strftime('%Y-%m-%d'),
+                                return_date.strftime('%Y-%m-%d'),
+                                location,
+                                total_cost,
+                                insurance,
+                                driver,
+                                delivery
                             ))
+                            
+                            booking_id = c.lastrowid
                             conn.commit()
-                            st.success("Review submitted successfully!")
+
+                            # Send notifications
+                            create_notification(
+                                st.session_state.user_data['id'],
+                                f"Booking request sent for {vehicle[2]} {vehicle[3]}",
+                                "booking_created"
+                            )
+                            
+                            create_notification(
+                                vehicle[1],  # owner_id
+                                f"New booking request for your {vehicle[2]} {vehicle[3]}",
+                                "new_booking"
+                            )
+
+                            st.success("Booking request sent! You'll be notified once the owner confirms.")
+                            st.session_state.page = "my_bookings"
                             st.experimental_rerun()
+
                         except Exception as e:
-                            st.error(f"Error submitting review: {str(e)}")
+                            st.error(f"Booking failed: {str(e)}")
 
-    conn.close()
+        # Reviews section
+        st.markdown("### Customer Reviews")
+        c.execute("""
+            SELECT r.*, u.full_name, u.profile_pic
+            FROM reviews r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.vehicle_id = ?
+            ORDER BY r.created_at DESC
+        """, (vehicle[0],))
+        
+        reviews = c.fetchall()
+        
+        if not reviews:
+            st.info("No reviews yet for this vehicle.")
+        else:
+            for review in reviews:
+                with st.container():
+                    col1, col2 = st.columns([1, 5])
+                    with col1:
+                        if review[7]:  # profile_pic
+                            st.image(
+                                f"data:image/jpeg;base64,{review[7]}",
+                                width=50
+                            )
+                    with col2:
+                        st.markdown(f"""
+                            <div style='background-color: white; padding: 10px; border-radius: 5px;'>
+                                <p><strong>{review[6]}</strong> • {'⭐' * review[4]}</p>
+                                <p>{review[5]}</p>
+                                <small>{review[3].split()[0]}</small>
+                            </div>
+                        """, unsafe_allow_html=True)
 
+            # Add review if user has rented this vehicle
+            if st.session_state.user_data:
+                c.execute("""
+                    SELECT id FROM bookings 
+                    WHERE user_id = ? AND vehicle_id = ? AND status = 'completed'
+                    LIMIT 1
+                """, (st.session_state.user_data['id'], vehicle[0]))
+                
+                if c.fetchone():
+                    with st.form("review_form"):
+                        st.markdown("### Write a Review")
+                        rating = st.slider("Rating", 1, 5, 5)
+                        comment = st.text_area("Your Review")
+                        
+                        if st.form_submit_button("Submit Review"):
+                            try:
+                                c.execute("""
+                                    INSERT INTO reviews 
+                                    (user_id, vehicle_id, rating, comment, created_at)
+                                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                                """, (
+                                    st.session_state.user_data['id'],
+                                    vehicle[0],
+                                    rating,
+                                    comment
+                                ))
+                                conn.commit()
+                                st.success("Review submitted successfully!")
+                                st.experimental_rerun()
+                            except Exception as e:
+                                st.error(f"Error submitting review: {str(e)}")
+
+    except Exception as e:
+        st.error(f"Error loading vehicle details: {str(e)}")
+    finally:
+        conn.close()
 def show_booking_confirmation(booking_id):
     """Show booking confirmation and create notification"""
     if 'user_data' not in st.session_state:
