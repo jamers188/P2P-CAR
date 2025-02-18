@@ -1404,102 +1404,156 @@ def show_vehicle_details():
     conn.close()
 
 def show_booking_confirmation(booking_id):
-    st.title("Booking Confirmed!")
-    
+    """Show booking confirmation and create notification"""
+    if 'user_data' not in st.session_state:
+        st.warning("Please login to continue")
+        return
+        
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # Get booking details with vehicle and user information
-    c.execute('''
-        SELECT b.*, v.make, v.model, v.year, u.full_name, u.email
+    # Get booking details
+    c.execute("""
+        SELECT b.*, v.make, v.model, u.email as owner_email
         FROM bookings b
         JOIN vehicles v ON b.vehicle_id = v.id
-        JOIN users u ON b.user_id = u.id
+        JOIN users u ON v.owner_id = u.id
         WHERE b.id = ?
-    ''', (booking_id,))
+    """, (booking_id,))
     
     booking = c.fetchone()
     conn.close()
     
-    if not booking:
-        st.error("Booking not found")
-        return
-
-    # Display confirmation
-    st.markdown(f"""
-        <div style='background-color: #e8f5e9; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
-            <h2>🎉 Your booking is confirmed!</h2>
-            <p>Booking reference: #{booking[0]}</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Booking details
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### Vehicle Details")
-        st.write(f"**Vehicle:** {booking[11]} {booking[12]} ({booking[13]})")
-        st.write(f"**Pickup Date:** {booking[3]}")
-        st.write(f"**Return Date:** {booking[4]}")
-        st.write(f"**Location:** {booking[5]}")
+    if booking:
+        # Create notification for the user
+        create_notification(
+            user_id=st.session_state.user_data['id'],
+            message=f"Booking confirmed for {booking[11]} {booking[12]}",  # make and model
+            notification_type="booking_confirmation"
+        )
         
-    with col2:
-        st.markdown("### Payment Details")
-        st.write(f"**Total Amount:** AED {booking[6]:,.2f}")
-        st.write(f"**Payment Status:** {booking[7]}")
+        # Create notification for the vehicle owner
+        create_notification(
+            user_id=booking[2],  # owner_id
+            message=f"New booking received for your {booking[11]} {booking[12]}",
+            notification_type="new_booking"
+        )
         
-        # Additional services
-        services = []
-        if booking[8]:  # insurance
-            services.append("Insurance")
-        if booking[9]:  # driver_service
-            services.append("Driver Service")
-        if booking[10]:  # delivery_service
-            services.append("Car Delivery")
-            
-        if services:
-            st.write("**Additional Services:**")
-            for service in services:
-                st.write(f"- {service}")
-
-    # Next steps
-    st.markdown("### Next Steps")
-    st.markdown("""
-        1. Check your email for the booking confirmation
-        2. Present your driver's license at pickup
-        3. Complete the vehicle inspection
-        4. Enjoy your ride!
-    """)
-
-    # Action buttons
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("View Booking Details"):
-            st.session_state.page = "my_bookings"
-            st.experimental_rerun()
-    with col2:
-        if st.button("Download Invoice"):
-            # Implement invoice download
-            pass
-    with col3:
-        if st.button("Contact Support"):
-            st.session_state.page = "support"
-            st.experimental_rerun()
+        st.success("Booking confirmed! Check your notifications for details.")
 
 def create_notification(user_id, message, notification_type):
     """Create a new notification for a user"""
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute('''
+        
+        # Create notifications table if it doesn't exist
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL,
+                read_status BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+        
+        # Insert new notification
+        c.execute("""
             INSERT INTO notifications 
-            (user_id, message, type, read)
+            (user_id, message, type, read_status)
             VALUES (?, ?, ?, FALSE)
-        ''', (user_id, message, notification_type))
+        """, (user_id, message, notification_type))
+        
         conn.commit()
-        conn.close()
     except Exception as e:
         print(f"Error creating notification: {str(e)}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def get_notifications(user_id):
+    """Get all notifications for a user"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            SELECT * FROM notifications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (user_id,))
+        
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error getting notifications: {str(e)}")
+        return []
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def mark_notification_as_read(notification_id):
+    """Mark a specific notification as read"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            UPDATE notifications
+            SET read_status = TRUE
+            WHERE id = ?
+        """, (notification_id,))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error marking notification as read: {str(e)}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def mark_all_notifications_as_read(user_id):
+    """Mark all notifications for a user as read"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            UPDATE notifications
+            SET read_status = TRUE
+            WHERE user_id = ?
+        """, (user_id,))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error marking notifications as read: {str(e)}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def delete_old_notifications():
+    """Delete notifications older than 30 days"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            DELETE FROM notifications
+            WHERE created_at < datetime('now', '-30 days')
+        """)
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Error deleting old notifications: {str(e)}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 
 def show_my_bookings():
     st.title("My Bookings")
