@@ -28,6 +28,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- Permanent Database Setup ----
+# ---- Permanent Database Setup ----
 DB_FILE = "permanent_car_rental.db"
 def setup_database():
     conn = sqlite3.connect(DB_FILE)
@@ -44,8 +45,20 @@ def setup_database():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS insurance_claims (
+        id INTEGER PRIMARY KEY,
+        user_email TEXT NOT NULL,
+        car_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        proof_image TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
     conn.commit()
     conn.close()
+
+setup_database()
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -82,6 +95,7 @@ def get_user_details(email):
     conn.close()
     return user
 
+# ---- Profile Picture Handling ----
 def save_profile_picture(uploaded_file):
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
@@ -159,8 +173,9 @@ SUBSCRIPTION_PLANS = {
 }
 
 # ---- Insurance Claims ----
+
 def submit_insurance_claim(user_email, car_id, description, proof_file):
-    conn = sqlite3.connect('car_rental.db')
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     image_data = base64.b64encode(proof_file.read()).decode()
     c.execute("""
@@ -172,7 +187,7 @@ def submit_insurance_claim(user_email, car_id, description, proof_file):
 
 def view_insurance_claims():
     st.markdown("# Insurance Claims")
-    conn = sqlite3.connect('car_rental.db')
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT * FROM insurance_claims")
     claims = c.fetchall()
@@ -190,7 +205,7 @@ def view_insurance_claims():
         st.info("No insurance claims yet.")
 
 def update_insurance_claim(claim_id, status):
-    conn = sqlite3.connect('car_rental.db')
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("UPDATE insurance_claims SET status = ? WHERE id = ?", (status, claim_id))
     conn.commit()
@@ -213,11 +228,21 @@ def about_us():
     """, unsafe_allow_html=True)
 
 # ---- Page Routing ----
-if not st.session_state.logged_in:
+if not st.session_state.get("logged_in", False):
     login_page()
 else:
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Dashboard", "List Car", "My Bookings", "Insurance Claims", "Subscriptions", "About Us"])
+    user_name, profile_picture = get_user_details(st.session_state.user_email)
+    with st.sidebar:
+        if profile_picture:
+            st.image(f"data:image/jpeg;base64,{profile_picture}", caption=user_name, width=100)
+        else:
+            st.write(f"Welcome, {user_name}")
+        st.sidebar.title("Navigation")
+        page = st.sidebar.radio("Go to", ["Dashboard", "List Car", "My Bookings", "Insurance Claims", "Subscriptions", "About Us"])
+        if st.button("Logout"):
+            st.session_state["logged_in"] = False
+            st.session_state["user_email"] = None
+            st.rerun()
     
     if page == "Dashboard":
         st.write("Welcome to the dashboard!")
