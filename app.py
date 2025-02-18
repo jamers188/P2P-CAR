@@ -1521,54 +1521,42 @@ def show_my_bookings():
 def show_booking_list(cursor, booking_type):
     today = datetime.now().date()
     
+    # Base query with proper column indexing
+    base_query = """
+        SELECT 
+            b.*,
+            v.make, v.model, v.year, v.images,
+            v.daily_rate, v.category,
+            u.full_name as owner_name, u.phone as owner_phone
+        FROM bookings b
+        JOIN vehicles v ON b.vehicle_id = v.id
+        JOIN users u ON v.owner_id = u.id
+    """
+    
     if booking_type == "upcoming":
-        query = '''
-            SELECT 
-                b.*,
-                v.make, v.model, v.year, v.images,
-                v.daily_rate, v.category,
-                u.full_name as owner_name, u.phone as owner_phone
-            FROM bookings b
-            JOIN vehicles v ON b.vehicle_id = v.id
-            JOIN users u ON v.owner_id = u.id
+        query = base_query + """
             WHERE b.user_id = ? 
             AND date(b.start_date) >= ?
             AND b.status != 'cancelled'
             ORDER BY b.start_date ASC
-        '''
+        """
         cursor.execute(query, (st.session_state.user_data['id'], today))
     
     elif booking_type == "past":
-        query = '''
-            SELECT 
-                b.*,
-                v.make, v.model, v.year, v.images,
-                v.daily_rate, v.category,
-                u.full_name as owner_name, u.phone as owner_phone
-            FROM bookings b
-            JOIN vehicles v ON b.vehicle_id = v.id
-            JOIN users u ON v.owner_id = u.id
+        query = base_query + """
             WHERE b.user_id = ? 
             AND date(b.end_date) < ?
             AND b.status != 'cancelled'
             ORDER BY b.end_date DESC
-        '''
+        """
         cursor.execute(query, (st.session_state.user_data['id'], today))
     
     else:  # cancelled
-        query = '''
-            SELECT 
-                b.*,
-                v.make, v.model, v.year, v.images,
-                v.daily_rate, v.category,
-                u.full_name as owner_name, u.phone as owner_phone
-            FROM bookings b
-            JOIN vehicles v ON b.vehicle_id = v.id
-            JOIN users u ON v.owner_id = u.id
+        query = base_query + """
             WHERE b.user_id = ? 
             AND b.status = 'cancelled'
             ORDER BY b.created_at DESC
-        '''
+        """
         cursor.execute(query, (st.session_state.user_data['id'],))
     
     bookings = cursor.fetchall()
@@ -1588,17 +1576,17 @@ def show_booking_list(cursor, booking_type):
             
             with col1:
                 # Display vehicle image
-                if booking['images']:
-                    primary_image = booking['images'].split(',')[0]
+                if booking[14]:  # images column
+                    primary_image = booking[14].split(',')[0]
                     st.image(
                         f"data:image/jpeg;base64,{primary_image}",
-                        caption=f"{booking['make']} {booking['model']}",
+                        caption=f"{booking[11]} {booking[12]}",  # make and model
                         use_column_width=True
                     )
             
             with col2:
                 # Vehicle and booking details
-                st.subheader(f"{booking['make']} {booking['model']} ({booking['year']})")
+                st.subheader(f"{booking[11]} {booking[12]} ({booking[13]})")  # make, model, year
                 
                 # Status badge with appropriate color
                 status_colors = {
@@ -1607,69 +1595,68 @@ def show_booking_list(cursor, booking_type):
                     'completed': 'blue',
                     'cancelled': 'red'
                 }
-                status_color = status_colors.get(booking['status'], 'grey')
+                status_color = status_colors.get(booking[7], 'grey')  # status column
                 
                 st.markdown(f"""
                     <span style='background-color: {status_color}; color: white; 
                               padding: 5px 10px; border-radius: 15px; font-size: 0.8em;'>
-                        {booking['status'].upper()}
+                        {booking[7].upper()}
                     </span>
                 """, unsafe_allow_html=True)
                 
                 # Booking details
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.write("📅 **Pickup Date:**", booking['start_date'])
-                    st.write("📍 **Location:**", booking['pickup_location'])
-                    st.write("💰 **Total Amount:** AED", f"{booking['total_amount']:,.2f}")
+                    st.write("📅 **Pickup Date:**", booking[3])  # start_date
+                    st.write("📍 **Location:**", booking[5])     # pickup_location
+                    st.write("💰 **Total Amount:** AED", f"{booking[6]:,.2f}")  # total_amount
                 
                 with col2:
-                    st.write("📅 **Return Date:**", booking['end_date'])
-                    st.write("🚗 **Category:**", booking['category'])
-                    st.write("📱 **Owner Contact:**", booking['owner_phone'])
+                    st.write("📅 **Return Date:**", booking[4])    # end_date
+                    st.write("🚗 **Category:**", booking[16])      # category
+                    st.write("📱 **Owner Contact:**", booking[18]) # owner_phone
                 
                 # Additional services
-                if any([booking['insurance'], booking['driver_service'], 
-                       booking['delivery_service']]):
+                if any([booking[8], booking[9], booking[10]]):  # insurance, driver, delivery
                     st.markdown("#### Additional Services:")
                     services = []
-                    if booking['insurance']:
+                    if booking[8]:  # insurance
                         services.append("🛡️ Insurance")
-                    if booking['driver_service']:
+                    if booking[9]:  # driver_service
                         services.append("👨‍✈️ Driver Service")
-                    if booking['delivery_service']:
+                    if booking[10]:  # delivery_service
                         services.append("🚚 Car Delivery")
                     st.write(" | ".join(services))
                 
                 # Action buttons based on booking status
-                if booking['status'] == 'pending':
+                if booking[7] == 'pending':  # status
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("Cancel Booking", key=f"cancel_{booking['id']}"):
-                            if cancel_booking(booking['id']):
+                        if st.button("Cancel Booking", key=f"cancel_{booking[0]}"):
+                            if cancel_booking(booking[0]):
                                 st.success("Booking cancelled successfully!")
                                 st.experimental_rerun()
                     with col2:
-                        if st.button("Modify Booking", key=f"modify_{booking['id']}"):
-                            st.session_state.booking_to_modify = booking['id']
+                        if st.button("Modify Booking", key=f"modify_{booking[0]}"):
+                            st.session_state.booking_to_modify = booking[0]
                             st.session_state.page = "modify_booking"
                             st.experimental_rerun()
                 
-                elif booking['status'] == 'completed':
+                elif booking[7] == 'completed':  # status
                     # Check if user has already reviewed
-                    cursor.execute('''
+                    cursor.execute("""
                         SELECT id FROM reviews 
                         WHERE booking_id = ? AND user_id = ?
-                    ''', (booking['id'], st.session_state.user_data['id']))
+                    """, (booking[0], st.session_state.user_data['id']))
                     
                     if not cursor.fetchone():  # No review yet
-                        if st.button("Write Review", key=f"review_{booking['id']}"):
-                            st.session_state.booking_to_review = booking['id']
+                        if st.button("Write Review", key=f"review_{booking[0]}"):
+                            st.session_state.booking_to_review = booking[0]
                             st.session_state.page = "write_review"
                             st.experimental_rerun()
                 
                 # Download invoice button for all bookings
-                if st.button("Download Invoice", key=f"invoice_{booking['id']}"):
+                if st.button("Download Invoice", key=f"invoice_{booking[0]}"):
                     generate_invoice(booking)
             
             st.markdown("</div>", unsafe_allow_html=True)
