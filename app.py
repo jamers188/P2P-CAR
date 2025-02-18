@@ -967,28 +967,60 @@ def show_register_page():
                 st.error("Please agree to the Terms and Conditions")
                 return
             
-            # Check if email already exists
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute('SELECT id FROM users WHERE email = ?', (email,))
-            if c.fetchone():
-                st.error("Email already registered")
-                conn.close()
+            # Validate email format
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                st.error("Please enter a valid email address")
                 return
             
+            # Validate password strength
+            if len(password) < 8:
+                st.error("Password must be at least 8 characters long")
+                return
+            
+            if not re.search(r"[A-Z]", password):
+                st.error("Password must contain at least one uppercase letter")
+                return
+            
+            if not re.search(r"[a-z]", password):
+                st.error("Password must contain at least one lowercase letter")
+                return
+            
+            if not re.search(r"\d", password):
+                st.error("Password must contain at least one number")
+                return
+            
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            
             try:
+                # Check if email already exists
+                c.execute("""
+                    SELECT id FROM users 
+                    WHERE email = ?
+                """, (email,))
+                
+                if c.fetchone():
+                    st.error("Email already registered")
+                    return
+                
                 # Process profile picture if uploaded
                 profile_pic_data = None
                 if profile_pic:
-                    profile_pic_data = save_uploaded_image(profile_pic)
+                    try:
+                        profile_pic_data = save_uploaded_image(profile_pic)
+                    except Exception as e:
+                        st.error(f"Error processing profile picture: {str(e)}")
+                        return
                 
                 # Insert new user
-                c.execute('''
+                c.execute("""
                     INSERT INTO users 
                     (email, password, full_name, phone, address, 
-                     driving_license, profile_pic, role, account_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'user', 'active')
-                ''', (
+                     driving_license, profile_pic, role, account_status,
+                     created_at, last_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'user', 'active',
+                           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, (
                     email,
                     hash_password(password),
                     full_name,
@@ -998,13 +1030,22 @@ def show_register_page():
                     profile_pic_data
                 ))
                 
+                user_id = c.lastrowid
+                
+                # Create welcome notification
+                c.execute("""
+                    INSERT INTO notifications 
+                    (user_id, message, type, read_status, created_at)
+                    VALUES (?, ?, ?, FALSE, CURRENT_TIMESTAMP)
+                """, (
+                    user_id,
+                    f"Welcome to Premium Car Rentals, {full_name}! Start exploring our collection.",
+                    "welcome"
+                ))
+                
                 conn.commit()
+                
                 st.success("Registration successful! Please login.")
-                
-                # Send welcome email (implement this function based on your email service)
-                # send_welcome_email(email, full_name)
-                
-                # Redirect to login page
                 st.session_state.page = "login"
                 st.experimental_rerun()
                 
@@ -1012,6 +1053,50 @@ def show_register_page():
                 st.error(f"Registration failed: {str(e)}")
             finally:
                 conn.close()
+
+def setup_users_table():
+    """Create the users table if it doesn't exist"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    try:
+        # Create users table
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                phone TEXT,
+                address TEXT,
+                driving_license TEXT,
+                profile_pic TEXT,
+                role TEXT DEFAULT 'user',
+                account_status TEXT DEFAULT 'active',
+                rating REAL DEFAULT 0,
+                rating_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                verification_status TEXT DEFAULT 'pending'
+            )
+        """)
+        
+        # Create indexes
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_email 
+            ON users(email)
+        """)
+        
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_status 
+            ON users(account_status)
+        """)
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Error setting up users table: {str(e)}")
+    finally:
+        conn.close()
 
 def show_reset_password_page():
     st.title("Reset Password")
