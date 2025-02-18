@@ -515,109 +515,30 @@ def get_car_categories():
         'Electric'
     ]
 
+# Image handling functions
 def save_uploaded_image(uploaded_file):
-    """
-    Save an uploaded image file as a base64 encoded string.
-    
-    Args:
-        uploaded_file: StreamlitUploadedFile object
-        
-    Returns:
-        str: Base64 encoded image string if successful, None if failed
-        
-    Raises:
-        Various exceptions are caught and logged
-    """
+    """Save uploaded image and return base64 string"""
     try:
-        # Validate input
-        if uploaded_file is None:
-            print("Error: No file provided")
-            return None
-            
-        # Log file details
-        print(f"Processing image: {uploaded_file.name}, Size: {uploaded_file.size} bytes")
-        
-        # Check file size (5MB limit)
-        if uploaded_file.size > 5 * 1024 * 1024:
-            print("Error: File too large (>5MB)")
-            return None
-            
-        # Open and validate image
-        try:
-            image = Image.open(uploaded_file)
-            print(f"Image opened successfully: Format={image.format}, Size={image.size}, Mode={image.mode}")
-        except Exception as e:
-            print(f"Error opening image: {str(e)}")
-            return None
-            
+        image = Image.open(uploaded_file)
         # Resize image if too large
         max_size = (1200, 1200)
-        if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
-            try:
-                image.thumbnail(max_size, Image.LANCZOS)
-                print(f"Image resized to: {image.size}")
-            except Exception as e:
-                print(f"Error resizing image: {str(e)}")
-                return None
+        image.thumbnail(max_size, Image.LANCZOS)
         
-        # Convert to RGB if necessary
+        # Convert to JPEG format
         if image.mode in ('RGBA', 'P'):
-            try:
-                image = image.convert('RGB')
-                print(f"Image converted to RGB mode")
-            except Exception as e:
-                print(f"Error converting image mode: {str(e)}")
-                return None
-        
-        # Save to bytes with compression
-        try:
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='JPEG', quality=85, optimize=True)
-            img_byte_arr = img_byte_arr.getvalue()
-            print(f"Image compressed to {len(img_byte_arr)} bytes")
-        except Exception as e:
-            print(f"Error saving image to bytes: {str(e)}")
-            return None
+            image = image.convert('RGB')
+            
+        # Save to bytes
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format='JPEG', quality=85)
+        img_byte_arr = img_byte_arr.getvalue()
         
         # Convert to base64
-        try:
-            base64_str = base64.b64encode(img_byte_arr).decode('utf-8')
-            print(f"Successfully converted image to base64 string of length {len(base64_str)}")
-            
-            # Validate base64 string
-            if not base64_str:
-                print("Error: Empty base64 string")
-                return None
-                
-            # Verify the base64 string can be decoded
-            test_decode = base64.b64decode(base64_str)
-            if not test_decode:
-                print("Error: Invalid base64 string (decode test failed)")
-                return None
-                
-            return base64_str
-            
-        except Exception as e:
-            print(f"Error in base64 encoding: {str(e)}")
-            return None
-            
+        return base64.b64encode(img_byte_arr).decode()
     except Exception as e:
-        print(f"Unexpected error in save_uploaded_image: {str(e)}")
+        print(f"Error processing image: {e}")
         return None
-    finally:
-        # Clean up
-        if 'image' in locals():
-            try:
-                image.close()
-            except:
-                pass
-            
-        if 'img_byte_arr' in locals():
-            try:
-                img_byte_arr.close()
-            except:
-                pass
-                
+
 def validate_image(uploaded_file):
     """Validate uploaded image"""
     try:
@@ -815,26 +736,9 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
         for idx, car in enumerate(cars):
             with cols[idx % 3]:
                 specs = json.loads(car[8])  # Parse specs JSON
-                
-                # Create proper image URL
-                image_html = ""
-                if car[11]:  # If image data exists
-                    try:
-                        # Ensure the base64 string is complete and properly formatted
-                        image_data = car[11].strip()
-                        # Add proper data URL prefix if it doesn't exist
-                        if not image_data.startswith('data:image/jpeg;base64,'):
-                            image_data = f'data:image/jpeg;base64,{image_data}'
-                        image_html = f"<img src='{image_data}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>"
-                    except Exception as e:
-                        print(f"Error formatting image: {str(e)}")
-                        image_html = "<div style='width: 100%; height: 250px; background-color: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>No Image Available</div>"
-                else:
-                    image_html = "<div style='width: 100%; height: 250px; background-color: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>No Image Available</div>"
-                
                 st.markdown(f"""
                     <div class='car-card'>
-                        {image_html}
+                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>
                         <h3 style='color: #4B0082; margin: 1rem 0;'>{car[2]} ({car[3]})</h3>
                         <p style='color: #666;'>{format_currency(car[4])}/day</p>
                         <p style='color: #666;'>{car[5]}</p>
@@ -852,12 +756,13 @@ def display_cars(search="", luxury=False, suv=False, sports=False):
                         'year': car[3],
                         'price': car[4],
                         'location': car[5],
-                        'specs': car[8],
+                        'specs': car[8],  # Keep it as is, let show_car_details handle parsing
                         'image': car[11],
                         'owner_email': car[1]
                     }
                     st.session_state.current_page = 'car_details'
                     st.rerun()
+                 
     
     conn.close()
 
@@ -962,6 +867,9 @@ def list_your_car_page():
                     ))
                     
                     listing_id = c.lastrowid
+                    
+                    # Save images
+                    # Modify this part of the image saving logic
                     for idx, file in enumerate(uploaded_files):
                         image_data = save_uploaded_image(file)
                         if image_data:
@@ -969,8 +877,8 @@ def list_your_car_page():
                                 INSERT INTO listing_images 
                                 (listing_id, image_data, is_primary)
                                 VALUES (?, ?, ?)
-                            ''', (listing_id, image_data, idx == 0))
-                   
+                            ''', (listing_id, image_data, idx == 0))  # Only the first image is primary
+                    
                     conn.commit()
                     
                     # Create notification
