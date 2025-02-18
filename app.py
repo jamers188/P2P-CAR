@@ -1681,14 +1681,14 @@ def cancel_booking(booking_id):
         c = conn.cursor()
         
         # Get booking details first
-        c.execute('''
+        query = """
             SELECT b.*, v.make, v.model, u.email as owner_email
             FROM bookings b
             JOIN vehicles v ON b.vehicle_id = v.id
             JOIN users u ON v.owner_id = u.id
             WHERE b.id = ?
-        ''', (booking_id,))
-        
+        """
+        c.execute(query, (booking_id,))
         booking = c.fetchone()
         
         if not booking:
@@ -1696,30 +1696,32 @@ def cancel_booking(booking_id):
             return False
         
         # Check if cancellation is allowed (e.g., not too close to pickup date)
-        pickup_date = datetime.strptime(booking['start_date'], '%Y-%m-%d').date()
+        pickup_date = datetime.strptime(booking[3], '%Y-%m-%d').date()  # start_date is at index 3
         if (pickup_date - datetime.now().date()).days < 1:
             st.error("Cancellation is not allowed within 24 hours of pickup")
             return False
         
         # Update booking status
-        c.execute('''
+        update_query = """
             UPDATE bookings 
             SET status = 'cancelled',
                 cancellation_date = CURRENT_TIMESTAMP,
                 cancellation_reason = 'Customer cancelled'
             WHERE id = ?
-        ''', (booking_id,))
+        """
+        c.execute(update_query, (booking_id,))
         
         # Create notifications for both user and owner
         create_notification(
             st.session_state.user_data['id'],
-            f"Your booking for {booking['make']} {booking['model']} has been cancelled",
+            f"Your booking for {booking[11]} {booking[12]} has been cancelled",  # make and model
             "booking_cancelled"
         )
         
+        owner_id = booking[2]  # Assuming owner_id is at index 2
         create_notification(
-            booking['owner_email'],
-            f"Booking cancelled for your {booking['make']} {booking['model']}",
+            owner_id,
+            f"Booking cancelled for your {booking[11]} {booking[12]}",  # make and model
             "booking_cancelled"
         )
         
@@ -1732,6 +1734,82 @@ def cancel_booking(booking_id):
     finally:
         conn.close()
 
+def setup_booking_tables():
+    """Set up the necessary tables for bookings"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    try:
+        # Bookings table
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                vehicle_id INTEGER NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                pickup_location TEXT NOT NULL,
+                total_amount REAL NOT NULL,
+                status TEXT DEFAULT 'pending',
+                insurance BOOLEAN DEFAULT FALSE,
+                driver_service BOOLEAN DEFAULT FALSE,
+                delivery_service BOOLEAN DEFAULT FALSE,
+                vip_service BOOLEAN DEFAULT FALSE,
+                cancellation_date TIMESTAMP,
+                cancellation_reason TEXT,
+                last_modified TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+            )
+        """)
+        
+        # Booking modifications table
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS booking_modifications (
+                id INTEGER PRIMARY KEY,
+                booking_id INTEGER NOT NULL,
+                modified_by INTEGER NOT NULL,
+                old_start_date TEXT NOT NULL,
+                new_start_date TEXT NOT NULL,
+                old_end_date TEXT NOT NULL,
+                new_end_date TEXT NOT NULL,
+                old_amount REAL NOT NULL,
+                new_amount REAL NOT NULL,
+                modification_notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (booking_id) REFERENCES bookings(id),
+                FOREIGN KEY (modified_by) REFERENCES users(id)
+            )
+        """)
+        
+        # Create indexes for better performance
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_bookings_user 
+            ON bookings(user_id, status)
+        """)
+        
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_bookings_vehicle 
+            ON bookings(vehicle_id, status, start_date)
+        """)
+        
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_booking_mods 
+            ON booking_modifications(booking_id)
+        """)
+        
+        conn.commit()
+        
+    except Exception as e:
+        print(f"Error setting up booking tables: {str(e)}")
+    finally:
+        conn.close()
+
+# Add this to your setup_database function
+def setup_database():
+    # ... other setup code ...
+    setup_booking_tables()  # Add this line
 def generate_invoice(booking):
     """Generate and download PDF invoice for a booking"""
     try:
