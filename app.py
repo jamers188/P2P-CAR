@@ -920,20 +920,24 @@ def welcome_page():
         <div style='text-align: center; padding: 2rem;'>
             <h2 style='color: #4B0082;'>Experience Luxury on Wheels</h2>
             <p style='font-size: 1.2rem; color: #666;'>Discover our exclusive collection of premium vehicles</p>
+            <p style='font-size: 0.9rem; color: #28a745;'>Committed to SDGs 11, 12 & 13: Building sustainable mobility solutions</p>
         </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1,2,1])
+    col1, col2, col3, col4 = st.columns([1,2,2,1])
     with col2:
         if st.button('Login', key='welcome_login'):
             st.session_state.current_page = 'login'
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
         if st.button('Create Account', key='welcome_signup'):
             st.session_state.current_page = 'signup'
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+    
+    with col3:
         if st.button('Browse Cars', key='welcome_browse'):
             st.session_state.current_page = 'browse_cars'
-
+        st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
+        if st.button('About Us', key='welcome_about'):
+            st.session_state.current_page = 'about_us'
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
@@ -946,26 +950,35 @@ def login_page():
         password = st.text_input('Password', type='password')
     
         if st.button('Login', key='login_submit'):
-            if verify_user(email, password):
+            # Special case for admin
+            if email == "admin@luxuryrentals.com" and password == "admin123":
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-            
+                st.session_state.current_page = 'admin_panel'
+                st.success('Admin login successful!')
+                st.rerun()  # Use rerun() instead of experimental_rerun()
+            # Regular user authentication    
+            elif verify_user(email, password):
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                
                 # Get user role
                 role = get_user_role(email)
-            
+                
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
+                    st.success('Admin login successful!')
                 else:
                     st.session_state.current_page = 'browse_cars'
-                st.success('Login successful!')
-                st.experimental_rerun()  # This will restart the app in the new page
+                    st.success('Login successful!')
+                
+                st.rerun()  # Use rerun() instead of experimental_rerun()
             else:
                 st.error('Invalid credentials')
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
-
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -2744,7 +2757,112 @@ def update_bookings_table():
     finally:
         if conn:
             conn.close()
-
+def about_us_page():
+    st.markdown("<h1>About Luxury Car Rentals</h1>", unsafe_allow_html=True)
+    
+    if st.button('← Back to Welcome', key='about_back'):
+        st.session_state.current_page = 'welcome'
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("""
+        ## Our Mission
+        
+        At Luxury Car Rentals, we're committed to transforming the car rental experience through sustainability, 
+        innovation, and exceptional service. We believe in providing premium vehicles while contributing to a more 
+        sustainable future for transportation.
+        
+        ## Our Commitment to Sustainable Development Goals
+        
+        Our business model aligns with multiple UN Sustainable Development Goals (SDGs), with particular focus on:
+        
+        ### SDG 11: Sustainable Cities and Communities
+        
+        We contribute to more sustainable cities and communities by:
+        
+        - Promoting shared mobility solutions to reduce the need for car ownership
+        - Offering electric and hybrid vehicles to reduce urban emissions
+        - Supporting smart mobility integration with public transportation
+        - Implementing carbon offset programs for all rentals
+        
+        ### SDG 12: Responsible Consumption and Production
+        
+        We practice responsible business through:
+        
+        - Regular fleet maintenance to extend vehicle lifespan
+        - Recycling and proper disposal of automotive fluids and parts
+        - Paperless booking and digital receipts
+        - Partner with sustainable suppliers and local businesses
+        
+        ### SDG 13: Climate Action
+        
+        We're actively fighting climate change by:
+        
+        - Transitioning our fleet to electric and hybrid vehicles
+        - Carbon offsetting program for all rentals
+        - Investment in renewable energy for our facilities
+        - Educating customers on eco-friendly driving practices
+        
+        ## Our Sustainability Initiatives
+        
+        - **EV First**: 30% of our fleet is electric, growing to 75% by 2027
+        - **Carbon Neutral**: All rentals include carbon offset in partnership with Climate Action UAE
+        - **Green Facilities**: Our locations use solar power and rainwater harvesting
+        - **Community Support**: 2% of profits go to sustainable transportation initiatives
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        # SDG Logos and sustainability images
+        st.image("https://www.localgovernmentassociation.sa.gov.au/__data/assets/image/0016/1205080/SDG-11.jpg", 
+                caption="SDG 11: Sustainable Cities and Communities")
+        st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDayMFgGtUTvd6D_cWCYbCVQ46Hp0_6Bsh7xsODPvFX4nM3l63n8G11Zl6b3pWfE_Ia0A&usqp=CAU", 
+                caption="SDG 12: Responsible Consumption and Production")
+        st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFdSP0D6_UN0LKhd-LdVffEuDdUomJA-OIB4v-sxDYVkSPNCcCTVuozTHfR1r4o4l1A5s&usqp=CAU", 
+                caption="SDG 13: Climate Action")
+    
+    st.markdown("""
+    ## Our Team
+    
+    Luxury Car Rentals was founded in 2020 by a team of automotive enthusiasts and sustainability experts 
+    who believed luxury transportation could be both premium and environmentally responsible.
+    
+    Our leadership team brings together experience from the automotive industry, hospitality, technology, 
+    and environmental science to create a truly innovative approach to car rentals.
+    
+    ## Contact Us
+    
+    **Address:** Dubai Marina, Tower 3, Floor 15  
+    **Email:** info@luxurycarrentals.ae  
+    **Phone:** +971 4 123 4567  
+    
+    Follow us on social media: @LuxuryCarRentalsUAE
+    """, unsafe_allow_html=True)
+def persist_session():
+    """Ensure session persistence by storing login info in cookies"""
+    # If we're logged in but haven't stored credentials in the session_state
+    if 'persisted' not in st.session_state and st.session_state.logged_in:
+        st.session_state.persisted = True  # Mark as persisted
+        st.session_state.last_email = st.session_state.user_email  # Store the email
+        
+    # If we're not logged in but we have persisted credentials, restore them
+    if not st.session_state.logged_in and 'persisted' in st.session_state and 'last_email' in st.session_state:
+        if st.session_state.last_email:
+            # Verify the user still exists in the database
+            try:
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
+                c.execute('SELECT * FROM users WHERE email = ?', (st.session_state.last_email,))
+                user = c.fetchone()
+                conn.close()
+                
+                if user:
+                    # Restore login state
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = st.session_state.last_email
+                    print(f"Restored session for {st.session_state.user_email}")
+            except Exception as e:
+                print(f"Error restoring session: {e}")
 def main():
     # Create necessary folders
     create_folder_structure()
@@ -2764,6 +2882,9 @@ def main():
     
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 'welcome'
+    
+    # Call session persistence function 
+    persist_session()
     
     # Verify login persistence
     if st.session_state.logged_in:
@@ -2825,7 +2946,6 @@ def main():
                 st.markdown("---")
             
             # Navigation buttons
-            # Navigation buttons
             nav_items = [
                 ("🚗 Browse Cars", 'browse_cars'),
                 ("📝 My Listings", 'my_listings'),
@@ -2833,7 +2953,8 @@ def main():
                 ("🚗 My Bookings", 'my_bookings'),
                 ("📋 Bookings for My Cars", 'owner_bookings'),
                 ("💰 Subscription Plans", 'subscription_plans'),
-                ("🛡️ Insurance Claims", 'insurance_claims')
+                ("🛡️ Insurance Claims", 'insurance_claims'),
+                ("ℹ️ About Us", 'about_us')
             ]
             
             for label, page in nav_items:
@@ -2852,11 +2973,15 @@ def main():
             if st.button("👋 Logout"):
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
+                if 'persisted' in st.session_state:
+                    del st.session_state.persisted
+                if 'last_email' in st.session_state:
+                    del st.session_state.last_email
                 st.session_state.current_page = 'welcome'
-                st.experimental_rerun()
+                st.rerun()
     
     # Page routing
-    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup', 'browse_cars']:
+    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup', 'browse_cars', 'about_us']:
         st.session_state.current_page = 'welcome'
     
     # Page rendering
@@ -2874,7 +2999,8 @@ def main():
         'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') and st.session_state.selected_car else browse_cars_page,
         'book_car': book_car_page,
         'subscription_plans': subscription_plans_page,
-        'insurance_claims': insurance_claims_page
+        'insurance_claims': insurance_claims_page,
+        'about_us': about_us_page
     }
     
     # Authentication check for protected pages
@@ -2902,7 +3028,6 @@ def main():
             login_page()
     else:
         page_handlers.get(current_page, welcome_page)()
-
 if __name__ == '__main__':
     try:
         main()
