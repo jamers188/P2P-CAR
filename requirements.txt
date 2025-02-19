@@ -1,5 +1,11 @@
-streamlit
-pandas
-pillow
-python-dateutil
-requests
+streamlit==1.33.0
+pandas==2.2.2
+web3==6.15.1
+scikit-learn==1.4.2
+numpy==1.26.4
+python-dotenv==1.0.1
+cryptography==42.0.5
+python-dateutil==2.9.0
+plotly==5.18.0
+streamlit-3d==0.1.5
+pyjwt==2.8.0
