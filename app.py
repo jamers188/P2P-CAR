@@ -281,6 +281,203 @@ def register_page():
         else:
             st.error("Passwords do not match")
 
+def setup_notification_table():
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            notification_id INTEGER PRIMARY KEY,
+            user_email TEXT,
+            message TEXT,
+            type TEXT,
+            related_id INTEGER,
+            is_read BOOLEAN,
+            created_at TIMESTAMP,
+            FOREIGN KEY(user_email) REFERENCES users(email)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def check_for_review_reminders():
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('''
+        SELECT b.renter_email, b.booking_id, cl.make, cl.model
+        FROM bookings b
+        JOIN car_listings cl ON b.car_id = cl.listing_id
+        WHERE b.booking_status = 'completed'
+        AND b.return_date >= DATE('now', '-7 days')
+        AND b.booking_id NOT IN (SELECT booking_id FROM reviews)
+    ''')
+    completed_trips = c.fetchall()
+    conn.close()
+
+    for trip in completed_trips:
+        add_notification(
+            trip[0],
+            f"Don't forget to leave a review for your recent {trip[2]} {trip[3]} trip!",
+            "review_reminder",
+            trip[1]
+        )
+
+def check_for_new_reviews():
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('''
+        SELECT r.reviewee_email, cl.make, cl.model, r.review_id
+        FROM reviews r
+        JOIN car_listings cl ON r.car_id = cl.listing_id
+        WHERE r.created_at >= DATETIME('now', '-1 day')
+        AND r.review_response IS NULL
+    ''')
+    new_reviews = c.fetchall()
+    conn.close()
+
+    for review in new_reviews:
+        add_notification(
+            review[0],
+            f"You have a new review for your {review[1]} {review[2]}. Don't forget to respond!",
+            "new_review",
+            review[3]
+        )
+
+def add_notification(user_email, message, type, related_id):
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO notifications (user_email, message, type, related_id, is_read, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (user_email, message, type, related_id, False, datetime.now()))
+    conn.commit()
+    conn.close()
+
+def notification_center():
+    st.title("Notification Center")
+
+    if not st.session_state.logged_in:
+        st.warning("Please log in to view your notifications.")
+        return
+
+    notifications = get_user_notifications(st.session_state.user_email)
+
+    if not notifications:
+        st.info("You don't have any notifications.")
+        return
+
+    for notification in notifications:
+        with st.expander(f"{'🔵 ' if not notification['is_read'] else ''}{notification['message']} - {notification['created_at']}"):
+            st.write(notification['message'])
+            if notification['type'] == 'review_reminder':
+                if st.button("Leave Review", key=f"review_{notification['related_id']}"):
+                    st.session_state.current_page = 'review'
+                    st.session_state.review_booking_id = notification['related_id']
+                    st.experimental_rerun()
+            elif notification['type'] == 'new_review':
+                if st.button("Respond to Review", key=f"respond_{notification['related_id']}"):
+                    st.session_state.current_page = 'respond_review'
+                    st.session_state.review_id = notification['related_id']
+                    st.experimental_rerun()
+            
+            if not notification['is_read']:
+                if st.button("Mark as Read", key=f"read_{notification['notification_id']}"):
+                    mark_notification_as_read(notification['notification_id'])
+                    st.experimental_rerun()
+
+def get_user_notifications(user_email):
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('''
+        SELECT * FROM notifications
+        WHERE user_email = ?
+        ORDER BY created_at DESC
+    ''', (user_email,))
+    notifications = c.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in c.description], notification)) for notification in notifications]
+
+def mark_notification_as_read(notification_id):
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    c.execute('UPDATE notifications SET is_read = ? WHERE notification_id = ?', (True, notification_id))
+    conn.commit()
+    conn.close()
+
+def booking_page():
+    st.title("Book Your Ride")
+    
+    if not st.session_state.logged_in:
+        st.warning("Please log in to book a car.")
+        return
+    
+    if 'selected_car' not in st.session_state:
+        st.error("No car selected for booking.")
+        return
+    
+    car = st.session_state.selected_car
+    
+    st.write(f"**Selected Car:** {car['make']} {car['model']} ({car['year']})")
+    st.write(f"**Daily Price:** ${car['price']}")
+    
+    with st.form("booking_form"):
+        pickup_date = st.date_input("Pickup Date", min_value=datetime.now().date())
+        return_date = st.date_input("Return Date", min_value=pickup_date)
+        pickup_location = st.text_input("Pickup Location")
+        dropoff_location = st.text_input("Dropoff Location")
+        
+        airport_pickup = st.checkbox("Airport Pickup")
+        home_delivery = st.checkbox("Home Delivery")
+        
+        submit_button = st.form_submit_button("Book Now")
+        
+        if submit_button:
+            if not all([pickup_date, return_date, pickup_location, dropoff_location]):
+                st.error("Please fill in all required fields.")
+            else:
+                booking_id = create_booking(
+                    st.session_state.user_email,
+                    car['listing_id'],
+                    car['owner_email'],
+                    pickup_date,
+                    return_date,
+                    pickup_location,
+                    dropoff_location,
+                    airport_pickup,
+                    home_delivery,
+                    car['price']
+                )
+                if booking_id:
+                    st.success(f"Booking successful! Your booking ID is: {booking_id}")
+                    st.session_state.current_page = 'your_trips'
+                    st.experimental_rerun()
+                else:
+                    st.error("Booking failed. Please try again.")
+
+def create_booking(renter_email, car_id, owner_email, pickup_date, return_date, pickup_location, dropoff_location, airport_pickup, home_delivery, daily_price):
+    conn = sqlite3.connect('luxerides.db')
+    c = conn.cursor()
+    try:
+        c.execute('''
+            INSERT INTO bookings (renter_email, car_id, owner_email, pickup_date, return_date, pickup_location, dropoff_location, airport_pickup, home_delivery, price, booking_status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            renter_email, car_id, owner_email, pickup_date, return_date, pickup_location, dropoff_location,
+            airport_pickup, home_delivery, calculate_total_price(daily_price, pickup_date, return_date),
+            'upcoming', datetime.now()
+        ))
+        conn.commit()
+        booking_id = c.lastrowid
+        conn.close()
+        return booking_id
+    except Exception as e:
+        print(f"Error creating booking: {str(e)}")
+        conn.close()
+        return None
+
+def calculate_total_price(daily_price, pickup_date, return_date):
+    num_days = (return_date - pickup_date).days + 1
+    return daily_price * num_days
+
 
 def profile_page():
     st.title(f"Welcome, {st.session_state.user_email}! 👋")
