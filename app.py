@@ -474,15 +474,10 @@ def create_user(full_name, email, phone, password, profile_picture=None, role='u
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials"""
     try:
-        # Special case for admin
-        if email == "admin@luxuryrentals.com" and password == "admin123":
-            return True
-            
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
-        c.execute('SELECT password FROM users WHERE email = ?', (email,))
+        c.execute('SELECT password FROM users WHERE email = ? AND role = ?', (email, 'admin'))
         result = c.fetchone()
         
         if result and result[0] == hash_password(password):
@@ -492,7 +487,7 @@ def verify_user(email, password):
         print(f"Database error: {e}")
         return False
     finally:
-        if 'conn' in locals():
+        if conn:
             conn.close()
 
 def get_user_role(email):
@@ -948,33 +943,27 @@ def login_page():
     with col2:
         email = st.text_input('Email')
         password = st.text_input('Password', type='password')
-    
         if st.button('Login', key='login_submit'):
-            # Special case for admin
-            if email == "admin@luxuryrentals.com" and password == "admin123":
+            if verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.current_page = 'admin_panel'
-                st.success('Admin login successful!')
-                st.rerun()  # Use rerun() instead of experimental_rerun()
-            # Regular user authentication    
-            elif verify_user(email, password):
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                
+            
                 # Get user role
                 role = get_user_role(email)
-                
+            
                 if role == 'admin':
                     st.session_state.current_page = 'admin_panel'
                     st.success('Admin login successful!')
                 else:
                     st.session_state.current_page = 'browse_cars'
                     st.success('Login successful!')
-                
-                st.rerun()  # Use rerun() instead of experimental_rerun()
+            
+                st.rerun()
             else:
                 st.error('Invalid credentials')
+    
+    
+        
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
