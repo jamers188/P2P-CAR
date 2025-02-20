@@ -1455,7 +1455,7 @@ class ImageHandler:
         except Exception as e:
             return False, f"Error validating image: {str(e)}"
     
-    @staticmethod
+     @staticmethod
     def render_image_gallery(images, on_click=None):
         """Render an image gallery from a list of image data"""
         if not images:
@@ -1477,13 +1477,6 @@ class ImageHandler:
         gallery_html += '</div>'
         return gallery_html
 
-
-        class NotificationManager:
-    """Class for managing user notifications"""
-    
-    def __init__(self, db_manager):
-        self.db = db_manager
-    
     def create_notification(self, user_id, title, message, notification_type, link=None, action_text=None, priority='normal'):
         """Create a new notification for a user"""
         notification_id = str(uuid.uuid4())
