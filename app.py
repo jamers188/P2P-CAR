@@ -55,6 +55,7 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
+
 # Database Management
 class DatabaseManager:
     def __init__(self, db_path=DB_PATH):
