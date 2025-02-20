@@ -1403,7 +1403,6 @@ class UIComponents:
         """
 
 # Helper classes - these provide functionality used throughout the app
-
 class ImageHandler:
     """Class for handling image operations"""
     
@@ -1456,7 +1455,7 @@ class ImageHandler:
         except Exception as e:
             return False, f"Error validating image: {str(e)}"
     
-     @staticmethod
+    @staticmethod
     def render_image_gallery(images, on_click=None):
         """Render an image gallery from a list of image data"""
         if not images:
@@ -1478,6 +1477,13 @@ class ImageHandler:
         gallery_html += '</div>'
         return gallery_html
 
+
+class NotificationManager:
+    """Class for managing user notifications"""
+    
+    def __init__(self, db_manager):
+        self.db = db_manager
+        
     def create_notification(self, user_id, title, message, notification_type, link=None, action_text=None, priority='normal'):
         """Create a new notification for a user"""
         notification_id = str(uuid.uuid4())
@@ -1559,6 +1565,7 @@ class ImageHandler:
         
         return result[0] if result else 0
 
+
 class VehicleManager:
     """Class for managing vehicle listings"""
     
@@ -1589,7 +1596,6 @@ class VehicleManager:
         )
         
         return (result is not None, vehicle_id)
-    
     def add_vehicle_image(self, vehicle_id, image_data, image_type='jpeg', is_primary=False):
         """Add an image to a vehicle listing"""
         image_id = str(uuid.uuid4())
