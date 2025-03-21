@@ -3956,10 +3956,16 @@ def list_your_car_page():
     progress_val = (st.session_state.listing_step + 1) / len(steps)
     st.progress(progress_val)
     
-    # Step indicator
+    # Step indicator - Fixed the syntax error with proper string building
+    step_html = ""
+    for i, step in enumerate(steps):
+        font_weight = "600" if i == st.session_state.listing_step else "400"
+        color = "var(--primary-color)" if i == st.session_state.listing_step else "#666"
+        step_html += f'<div style="flex: 1; text-align: center; font-weight: {font_weight}; color: {color};">{step}</div>'
+    
     st.markdown(f"""
         <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
-            {"".join([f'<div style="flex: 1; text-align: center; font-weight: {600 if i == st.session_state.listing_step else 400}; color: {\'var(--primary-color)\' if i == st.session_state.listing_step else \'#666\'};">{step}</div>' for i, step in enumerate(steps)])}
+            {step_html}
         </div>
     """, unsafe_allow_html=True)
     
@@ -4244,7 +4250,7 @@ def list_your_car_page():
                             st.error("An error occurred while listing your car. Please try again.")
                 else:
                     st.error("Please agree to the Terms and Conditions")
-
+                    
 def submit_car_listing(form_data):
     """Submit a new car listing to the database"""
     try:
