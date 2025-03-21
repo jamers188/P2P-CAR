@@ -5400,7 +5400,14 @@ def show_sidebar():
         # Notifications section
         unread_count = get_unread_notifications_count(st.session_state.user_email)
         notification_label = f"🔔 Notifications ({unread_count})" if unread_count > 0 else "🔔 Notifications"
-        
+        st.markdown("""
+            <style>
+            .stButton>button#nav_notifications {
+                display: none;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown(f"""
             <div class="nav-item {'active' if current_page == 'notifications' else ''}" onclick="document.getElementById('nav_notifications').click();">
                 <span class="nav-item-icon">🔔</span>
@@ -5409,7 +5416,7 @@ def show_sidebar():
             </div>
         """, unsafe_allow_html=True)
         
-        if st.button(notification_label, key="nav_notifications", style="display:none;"):
+        if st.button(notification_label, key="nav_notifications"):
             st.session_state.current_page = 'notifications'
             st.rerun()
         
