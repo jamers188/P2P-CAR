@@ -1987,10 +1987,12 @@ def browse_cars_page():
             </div>
         """, unsafe_allow_html=True)
         
-        # Hidden button that will be clicked by the floating button
-        if st.button('List Your Car', key='list_car_btn', style='display:none;'):
+        st.markdown("<div style='display:none;'>", unsafe_allow_html=True)
+        if st.button('List Your Car', key='list_car_btn'):
             st.session_state.current_page = 'list_your_car'
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        
 
 def display_cars(search="", category="All", price_range=(500, 5000), sort_by="Newest"):
     # Connect to database and fetch cars
