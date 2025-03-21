@@ -5426,7 +5426,194 @@ def show_sidebar():
                 del st.session_state.last_email
             st.session_state.current_page = 'welcome'
             st.rerun()
-
+def insurance_claims_page():
+    """Enhanced insurance claims page with better UI"""
+    st.markdown("<h1>Insurance Claims</h1>", unsafe_allow_html=True)
+    
+    if st.button('← Back to My Bookings', key='claims_back'):
+        st.session_state.current_page = 'my_bookings'
+    
+    # Show two tabs: Submit New Claim and View Existing Claims
+    tab1, tab2 = st.tabs(["Submit New Claim", "My Claims"])
+    
+    with tab1:
+        st.markdown("<h3>Submit New Insurance Claim</h3>", unsafe_allow_html=True)
+        
+        # Get user's bookings that have insurance
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        c.execute('''
+            SELECT b.id, cl.model, cl.year, b.pickup_date, b.return_date
+            FROM bookings b
+            JOIN car_listings cl ON b.car_id = cl.id
+            WHERE b.user_email = ? AND b.insurance = TRUE
+            ORDER BY b.created_at DESC
+        ''', (st.session_state.user_email,))
+        insured_bookings = c.fetchall()
+        conn.close()
+        
+        if not insured_bookings:
+            st.warning("You don't have any bookings with insurance coverage. Insurance must be added at booking time.")
+            return
+        
+        # Create claim form
+        with st.form("claim_form"):
+            # Choose booking
+            booking_options = [f"#{b[0]} - {b[1]} ({b[2]}) - {b[3]} to {b[4]}" for b in insured_bookings]
+            selected_booking = st.selectbox("Select Insured Booking", booking_options)
+            booking_id = int(selected_booking.split('#')[1].split(' ')[0])
+            
+            # Incident details
+            incident_date = st.date_input("Incident Date")
+            damage_type = st.selectbox("Type of Damage", get_damage_types())
+            description = st.text_area("Describe the Incident", 
+                                      placeholder="Please provide detailed information about what happened...")
+            claim_amount = st.number_input("Claim Amount (AED)", min_value=0.0, step=100.0)
+            
+            # Evidence upload
+            st.markdown("### Upload Evidence")
+            evidence_files = st.file_uploader("Upload photos of damage (max 5 files)", 
+                                             type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+            
+            if evidence_files:
+                if len(evidence_files) > 5:
+                    st.warning("Maximum 5 files allowed. Only the first 5 will be processed.")
+                    evidence_files = evidence_files[:5]
+                
+                # Preview images
+                st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
+                for file in evidence_files:
+                    is_valid, message = validate_image(file)
+                    if is_valid:
+                        image = Image.open(file)
+                        st.image(image, use_container_width=True)
+                    else:
+                        st.error(message)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            submit = st.form_submit_button("Submit Claim")
+            
+            if submit:
+                if not all([incident_date, damage_type, description, claim_amount > 0]):
+                    st.error("Please fill in all required fields")
+                else:
+                    # Process images if provided
+                    evidence_images_data = None
+                    if evidence_files:
+                        evidence_images = []
+                        for file in evidence_files:
+                            img_data = save_uploaded_image(file)
+                            if img_data:
+                                evidence_images.append(img_data)
+                        
+                        if evidence_images:
+                            evidence_images_data = json.dumps(evidence_images)
+                    
+                    # Create claim
+                    success, message = create_insurance_claim(
+                        booking_id, 
+                        st.session_state.user_email,
+                        incident_date.isoformat(),
+                        description,
+                        damage_type,
+                        claim_amount,
+                        evidence_images_data
+                    )
+                    
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+    
+    with tab2:
+        st.markdown("<h3>My Insurance Claims</h3>", unsafe_allow_html=True)
+        
+        # Get user's claims
+        conn = sqlite3.connect('car_rental.db')
+        c = conn.cursor()
+        c.execute('''
+            SELECT ic.*, b.car_id, cl.model, cl.year  
+            FROM insurance_claims ic
+            JOIN bookings b ON ic.booking_id = b.id
+            JOIN car_listings cl ON b.car_id = cl.id
+            WHERE ic.user_email = ?
+            ORDER BY ic.created_at DESC
+        ''', (st.session_state.user_email,))
+        claims = c.fetchall()
+        conn.close()
+        
+        if not claims:
+            st.info("You haven't submitted any insurance claims yet.")
+            return
+        
+        # Display claims
+        for claim in claims:
+            with st.container():
+                claim_id = claim[0]
+                booking_id = claim[1]
+                incident_date = claim[3]
+                damage_type = claim[6]
+                claim_amount = claim[7]
+                status = claim[9]
+                admin_notes = claim[10]
+                car_model = claim[13]
+                car_year = claim[14]
+                
+                # Status color
+                status_colors = {
+                    'pending': 'pending',
+                    'approved': 'approved',
+                    'rejected': 'rejected',
+                    'partial': 'pending',
+                    'paid': 'approved'
+                }
+                status_class = status_colors.get(status.lower(), 'pending')
+                
+                st.markdown(f"""
+                    <div class="insurance-claim-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0;">Claim #{claim_id} - {car_model} ({car_year})</h3>
+                            <span class="status-badge {status_class}">{status.upper()}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <p><strong>Booking ID:</strong> #{booking_id}</p>
+                                <p><strong>Incident Date:</strong> {incident_date}</p>
+                                <p><strong>Damage Type:</strong> {damage_type}</p>
+                            </div>
+                            <div>
+                                <p><strong>Claim Amount:</strong> {format_currency(claim_amount)}</p>
+                                <p><strong>Status:</strong> {status.title()}</p>
+                            </div>
+                        </div>
+                """, unsafe_allow_html=True)
+                
+                # Show evidence images if available
+                if claim[8]:  # evidence_images field
+                    try:
+                        evidence_images = json.loads(claim[8])
+                        if evidence_images:
+                            st.markdown("<h4>Evidence Photos</h4>", unsafe_allow_html=True)
+                            st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
+                            for img_data in evidence_images:
+                                st.markdown(f"""
+                                    <img src="data:image/jpeg;base64,{img_data}" alt="Evidence Photo">
+                                """, unsafe_allow_html=True)
+                            st.markdown("</div>", unsafe_allow_html=True)
+                    except json.JSONDecodeError:
+                        st.error("Error loading evidence images")
+                
+                # Show admin notes if available
+                if admin_notes:
+                    st.markdown(f"""
+                        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
+                            <h4>Admin Notes</h4>
+                            <p>{admin_notes}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
 def main():
     """Main application function"""
     # Check if PIL's ImageDraw is imported for image generation
