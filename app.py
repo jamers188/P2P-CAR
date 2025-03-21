@@ -758,7 +758,7 @@ if 'search_query' not in st.session_state:
 if 'filter_category' not in st.session_state:
     st.session_state.filter_category = "All"
 
-# Database setup
+
 def setup_database():
     try:
         # Check if database exists first, don't remove it
@@ -916,8 +916,7 @@ def setup_database():
                 FOREIGN KEY (car_id) REFERENCES car_listings (id)
             )
         ''')
-
-        # Create indexes
+        # Ensure comprehensive indexes
         c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)')
@@ -926,6 +925,7 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_claims_status ON insurance_claims(claim_status)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscription_history(user_email)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_reviews_car_id ON reviews(car_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id)')
 
         # Create admin user only if database is new
         if not db_exists:
@@ -941,7 +941,9 @@ def setup_database():
                 'admin'
                 ))
                 
-            # Add sample car data for a better user experience
+        # If database is new or no listings exist, add sample data
+        c.execute('SELECT COUNT(*) FROM car_listings')
+        if not db_exists or c.fetchone()[0] == 0:
             add_sample_data(c)
 
         conn.commit()
@@ -5621,6 +5623,7 @@ def insurance_claims_page():
                     """, unsafe_allow_html=True)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
+
 def main():
     """Main application function"""
     # Check if PIL's ImageDraw is imported for image generation
@@ -5632,95 +5635,206 @@ def main():
     # Create necessary folders
     create_folder_structure()
     
-    # Setup or update database
+    # Setup or update database with comprehensive table creation
     if not os.path.exists('car_rental.db'):
         setup_database()
     else:
-        update_bookings_table()
-    
-    # Persistent login state initialization
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    
-    if 'user_email' not in st.session_state:
-        st.session_state.user_email = None
-    
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'welcome'
-    
-    # Call session persistence function 
-    persist_session()
-    
-    # Verify login persistence
-    if st.session_state.logged_in:
         try:
             conn = sqlite3.connect('car_rental.db')
             c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE email = ?', (st.session_state.user_email,))
-            user = c.fetchone()
-            conn.close()
             
-            # If no user found, force logout
-            if not user:
-                st.session_state.logged_in = False
-                st.session_state.user_email = None
-                st.session_state.current_page = 'welcome'
-        except Exception as e:
-            print(f"Login verification error: {e}")
+            # Comprehensive table creation dictionary
+            table_schemas = {
+                'users': '''
+                    CREATE TABLE users (
+                        id INTEGER PRIMARY KEY,
+                        full_name TEXT NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        phone TEXT NOT NULL,
+                        password TEXT NOT NULL,
+                        role TEXT DEFAULT 'user',
+                        profile_picture TEXT,
+                        subscription_type TEXT DEFAULT 'free_renter',
+                        subscription_expiry TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''',
+                'car_listings': '''
+                    CREATE TABLE car_listings (
+                        id INTEGER PRIMARY KEY,
+                        owner_email TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        year INTEGER NOT NULL,
+                        price REAL NOT NULL,
+                        location TEXT NOT NULL,
+                        description TEXT,
+                        category TEXT NOT NULL,
+                        specs TEXT NOT NULL,
+                        listing_status TEXT DEFAULT 'pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (owner_email) REFERENCES users (email)
+                    )
+                ''',
+                'listing_images': '''
+                    CREATE TABLE listing_images (
+                        id INTEGER PRIMARY KEY,
+                        listing_id INTEGER NOT NULL,
+                        image_data TEXT NOT NULL,
+                        is_primary BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (listing_id) REFERENCES car_listings (id)
+                    )
+                ''',
+                'bookings': '''
+                    CREATE TABLE bookings (
+                        id INTEGER PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        car_id INTEGER NOT NULL,
+                        pickup_date TEXT NOT NULL,
+                        return_date TEXT NOT NULL,
+                        location TEXT NOT NULL,
+                        total_price REAL NOT NULL,
+                        insurance BOOLEAN,
+                        driver BOOLEAN,
+                        delivery BOOLEAN,
+                        vip_service BOOLEAN,
+                        booking_status TEXT DEFAULT 'pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        insurance_price REAL DEFAULT 0,
+                        driver_price REAL DEFAULT 0,
+                        delivery_price REAL DEFAULT 0,
+                        vip_service_price REAL DEFAULT 0,
+                        FOREIGN KEY (user_email) REFERENCES users (email),
+                        FOREIGN KEY (car_id) REFERENCES car_listings (id)
+                    )
+                ''',
+                'insurance_claims': '''
+                    CREATE TABLE insurance_claims (
+                        id INTEGER PRIMARY KEY,
+                        booking_id INTEGER NOT NULL,
+                        user_email TEXT NOT NULL,
+                        claim_date TEXT NOT NULL,
+                        incident_date TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        damage_type TEXT NOT NULL,
+                        claim_amount REAL NOT NULL,
+                        evidence_images TEXT,
+                        claim_status TEXT DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (booking_id) REFERENCES bookings (id),
+                        FOREIGN KEY (user_email) REFERENCES users (email)
+                    )
+                ''',
+                'notifications': '''
+                    CREATE TABLE notifications (
+                        id INTEGER PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        read BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_email) REFERENCES users (email)
+                    )
+                ''',
+                'admin_reviews': '''
+                    CREATE TABLE admin_reviews (
+                        id INTEGER PRIMARY KEY,
+                        listing_id INTEGER NOT NULL,
+                        admin_email TEXT NOT NULL,
+                        comment TEXT,
+                        review_status TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (listing_id) REFERENCES car_listings (id),
+                        FOREIGN KEY (admin_email) REFERENCES users (email)
+                    )
+                ''',
+                'subscription_history': '''
+                    CREATE TABLE subscription_history (
+                        id INTEGER PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        plan_type TEXT NOT NULL,
+                        start_date TEXT NOT NULL,
+                        end_date TEXT NOT NULL,
+                        amount_paid REAL NOT NULL,
+                        payment_method TEXT,
+                        status TEXT DEFAULT 'active',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_email) REFERENCES users (email)
+                    )
+                ''',
+                'reviews': '''
+                    CREATE TABLE reviews (
+                        id INTEGER PRIMARY KEY,
+                        booking_id INTEGER NOT NULL,
+                        user_email TEXT NOT NULL,
+                        car_id INTEGER NOT NULL,
+                        rating INTEGER NOT NULL,
+                        comment TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (booking_id) REFERENCES bookings (id),
+                        FOREIGN KEY (user_email) REFERENCES users (email),
+                        FOREIGN KEY (car_id) REFERENCES car_listings (id)
+                    )
+                '''
+            }
+            
+            # Indexes to create
+            indexes = [
+                'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)',
+                'CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)',
+                'CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)',
+                'CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)',
+                'CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)',
+                'CREATE INDEX IF NOT EXISTS idx_claims_status ON insurance_claims(claim_status)',
+                'CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscription_history(user_email)',
+                'CREATE INDEX IF NOT EXISTS idx_reviews_car_id ON reviews(car_id)',
+                'CREATE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id)'
+            ]
+            
+            # Check and create missing tables
+            for table_name, table_schema in table_schemas.items():
+                try:
+                    c.execute(f'SELECT 1 FROM {table_name} LIMIT 1')
+                except sqlite3.OperationalError:
+                    print(f"Table {table_name} does not exist. Creating...")
+                    c.execute(table_schema)
+            
+            # Create indexes
+            for index_query in indexes:
+                c.execute(index_query)
+            
+            # Ensure sample data is added if no listings exist
+            c.execute('SELECT COUNT(*) FROM car_listings')
+            if c.fetchone()[0] == 0:
+                # Create admin user if not exists
+                c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
+                if not c.fetchone():
+                    admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
+                    c.execute('''
+                        INSERT INTO users (full_name, email, phone, password, role)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (
+                        'Admin User',
+                        'admin@luxuryrentals.com',
+                        '+971500000000',
+                        admin_password,
+                        'admin'
+                    ))
+                
+                # Add sample car data
+                add_sample_data(c)
+            
+            conn.commit()
+            print("Database tables checked and updated successfully")
+        
+        except sqlite3.Error as e:
+            print(f"Database error during setup: {e}")
+            st.error(f"Database error: {e}")
+        finally:
+            if 'conn' in locals():
+                conn.close()
     
-    # Show sidebar for logged-in users
-    if st.session_state.logged_in:
-        show_sidebar()
-    
-    # Page routing
-    if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup', 'browse_cars', 'car_details', 'about_us']:
-        st.session_state.current_page = 'welcome'
-    
-    # Page handlers dictionary
-    page_handlers = {
-        'welcome': welcome_page,
-        'login': login_page,
-        'signup': signup_page,
-        'browse_cars': browse_cars_page,
-        'admin_dashboard': admin_dashboard,
-        'list_your_car': list_your_car_page,
-        'my_listings': my_listings_page,
-        'notifications': notifications_page,
-        'my_bookings': my_bookings_page,
-        'owner_bookings': my_bookings_page,  # We can reuse the function with a parameter
-        'car_details': lambda: show_car_details(st.session_state.selected_car) if hasattr(st.session_state, 'selected_car') and st.session_state.selected_car else browse_cars_page,
-        'book_car': book_car_page,
-        'subscription_plans': subscription_plans_page,
-        'insurance_claims': insurance_claims_page,
-        'about_us': about_us_page
-    }
-    
-    # Authentication check for protected pages
-    protected_pages = [
-        'list_your_car', 'my_listings', 'notifications', 
-        'my_bookings', 'owner_bookings', 'book_car', 'admin_dashboard',
-        'subscription_plans', 'insurance_claims'
-    ]
-    
-    # Render the current page
-    current_page = st.session_state.current_page
-    
-    if current_page in protected_pages:
-        if st.session_state.logged_in:
-            # Special handling for admin dashboard
-            if current_page == 'admin_dashboard' and get_user_role(st.session_state.user_email) != 'admin':
-                st.error("Access denied. Admin privileges required.")
-                st.session_state.current_page = 'browse_cars'
-                browse_cars_page()
-            else:
-                page_handlers.get(current_page, welcome_page)()
-        else:
-            st.warning("Please log in to access this page")
-            st.session_state.current_page = 'login'
-            login_page()
-    else:
-        page_handlers.get(current_page, welcome_page)()
-
 if __name__ == '__main__':
     try:
         main()
