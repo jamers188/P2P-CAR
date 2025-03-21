@@ -5626,22 +5626,20 @@ def insurance_claims_page():
 
 def main():
     """Main application function"""
-    # Check if PIL's ImageDraw is imported for image generation
     try:
-        from PIL import ImageDraw
-    except ImportError:
+        # Check if PIL's ImageDraw is imported for image generation
         from PIL import Image, ImageDraw
-    
-    # Create necessary folders
-    create_folder_structure()
-    
-    # Setup or update database with comprehensive table creation
-    if not os.path.exists('car_rental.db'):
-        setup_database()
-    else:
-        try:
-            conn = sqlite3.connect('car_rental.db')
-            c = conn.cursor()
+        
+        # Create necessary folders
+        create_folder_structure()
+        
+        # Setup or update database with comprehensive table creation
+        if not os.path.exists('car_rental.db'):
+            setup_database()
+        else:
+            try:
+                conn = sqlite3.connect('car_rental.db')
+                c = conn.cursor()
             
             # Comprehensive table creation dictionary
             table_schemas = {
@@ -5778,66 +5776,69 @@ def main():
                     )
                 '''
             }
-            
-            # Indexes to create
-            indexes = [
-                'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)',
-                'CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)',
-                'CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)',
-                'CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)',
-                'CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)',
-                'CREATE INDEX IF NOT EXISTS idx_claims_status ON insurance_claims(claim_status)',
-                'CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscription_history(user_email)',
-                'CREATE INDEX IF NOT EXISTS idx_reviews_car_id ON reviews(car_id)',
-                'CREATE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id)'
-            ]
-            
-            # Check and create missing tables
-            for table_name, table_schema in table_schemas.items():
-                try:
-                    c.execute(f'SELECT 1 FROM {table_name} LIMIT 1')
-                except sqlite3.OperationalError:
-                    print(f"Table {table_name} does not exist. Creating...")
-                    c.execute(table_schema)
-            
-            # Create indexes
-            for index_query in indexes:
-                c.execute(index_query)
-            
-            # Ensure sample data is added if no listings exist
-            c.execute('SELECT COUNT(*) FROM car_listings')
-            if c.fetchone()[0] == 0:
-                # Create admin user if not exists
-                c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
-                if not c.fetchone():
-                    admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
-                    c.execute('''
-                        INSERT INTO users (full_name, email, phone, password, role)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', (
-                        'Admin User',
-                        'admin@luxuryrentals.com',
-                        '+971500000000',
-                        admin_password,
-                        'admin'
-                    ))
-                
-                # Add sample car data
-                add_sample_data(c)
-            
-            conn.commit()
-            print("Database tables checked and updated successfully")
-        
-        except sqlite3.Error as e:
-            print(f"Database error during setup: {e}")
-            st.error(f"Database error: {e}")
-        finally:
-            if 'conn' in locals():
+                           
                 conn.close()
+            except sqlite3.Error as e:
+                st.error(f"Database error during setup: {e}")
+      
+        # Initialize session state variables if not already set
+        if 'logged_in' not in st.session_state:
+            st.session_state.logged_in = False
+        if 'user_email' not in st.session_state:
+            st.session_state.user_email = None
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'welcome'
+        
+        # Persist session if applicable
+        persist_session()
+        
+        # Main app logic
+        if not st.session_state.logged_in:
+            # Default to welcome page when not logged in
+            welcome_page()
+        else:
+            # Show sidebar for logged-in users
+            show_sidebar()
+            
+            # Routing based on current page
+            if st.session_state.current_page == 'welcome':
+                welcome_page()
+            elif st.session_state.current_page == 'login':
+                login_page()
+            elif st.session_state.current_page == 'signup':
+                signup_page()
+            elif st.session_state.current_page == 'browse_cars':
+                browse_cars_page()
+            elif st.session_state.current_page == 'car_details':
+                show_car_details(st.session_state.selected_car)
+            elif st.session_state.current_page == 'book_car':
+                book_car_page()
+            elif st.session_state.current_page == 'my_bookings':
+                my_bookings_page()
+            elif st.session_state.current_page == 'notifications':
+                notifications_page()
+            elif st.session_state.current_page == 'about_us':
+                about_us_page()
+            elif st.session_state.current_page == 'subscription_plans':
+                subscription_plans_page()
+            elif st.session_state.current_page == 'list_your_car':
+                list_your_car_page()
+            elif st.session_state.current_page == 'my_listings':
+                my_listings_page()
+            elif st.session_state.current_page == 'admin_dashboard':
+                admin_dashboard()
+            elif st.session_state.current_page == 'insurance_claims':
+                insurance_claims_page()
+            else:
+                # Fallback to welcome page
+                welcome_page()
     
-if __name__ == '__main__':
-    try:
-        main()
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        print(f"Error details: {str(e)}")
+        st.error(f"An unexpected error occurred: {e}")
+        print(f"Error details: {traceback.format_exc()}")
+
+# Main app execution
+if __name__ == '__main__':
+    import traceback
+    import streamlit as st
+    main()
