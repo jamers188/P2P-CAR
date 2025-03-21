@@ -919,7 +919,12 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 
 # Page Components
 def welcome_page():
-    st.markdown("<h1>🚗 Luxury Car Rentals</h1>", unsafe_allow_html=True)
+    logo_url = "path/to/your/logo.png"  # Replace with the path to your logo image file
+    st.markdown(f"""
+        <div style='text-align: center;'>
+            <img src="{logo_url}" alt="Luxury Car Rentals" style='max-width: 300px;'>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("""
         <div style='text-align: center; padding: 2rem;'>
