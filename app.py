@@ -919,7 +919,7 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 
 # Page Components
 def welcome_page():
-    logo_url = "path/to/your/logo.png"  # Replace with the path to your logo image file
+    logo_url = "kipride.png"  # Replace with the path to your logo image file
     st.markdown(f"""
         <div style='text-align: center;'>
             <img src="{logo_url}" alt="Luxury Car Rentals" style='max-width: 300px;'>
