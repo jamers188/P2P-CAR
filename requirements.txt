@@ -1,5 +1,9 @@
 streamlit
 pandas
-pillow
+numpy
+Pillow
+plotly
 python-dateutil
-requests
+sqlite3
+matplotlib
+openpyxl
