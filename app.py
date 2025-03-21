@@ -5393,7 +5393,7 @@ def show_sidebar():
             """, unsafe_allow_html=True)
             
             # Hidden button to handle the click
-            if st.button(label, key=f"nav_{page}", style="display:none;"):
+            if st.button(label, key=f"nav_{page}"):
                 st.session_state.current_page = page
                 st.rerun()
         
