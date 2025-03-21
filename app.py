@@ -5637,150 +5637,199 @@ def main():
         if not os.path.exists('car_rental.db'):
             setup_database()
         else:
+            conn = None
             try:
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
+                
+                # Check and create missing tables/indexes
+                table_schemas = {
+                    'users': '''
+                        CREATE TABLE IF NOT EXISTS users (
+                            id INTEGER PRIMARY KEY,
+                            full_name TEXT NOT NULL,
+                            email TEXT UNIQUE NOT NULL,
+                            phone TEXT NOT NULL,
+                            password TEXT NOT NULL,
+                            role TEXT DEFAULT 'user',
+                            profile_picture TEXT,
+                            subscription_type TEXT DEFAULT 'free_renter',
+                            subscription_expiry TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    ''',
+                    'car_listings': '''
+                        CREATE TABLE IF NOT EXISTS car_listings (
+                            id INTEGER PRIMARY KEY,
+                            owner_email TEXT NOT NULL,
+                            model TEXT NOT NULL,
+                            year INTEGER NOT NULL,
+                            price REAL NOT NULL,
+                            location TEXT NOT NULL,
+                            description TEXT,
+                            category TEXT NOT NULL,
+                            specs TEXT NOT NULL,
+                            listing_status TEXT DEFAULT 'pending',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (owner_email) REFERENCES users (email)
+                        )
+                    ''',
+                    'listing_images': '''
+                        CREATE TABLE IF NOT EXISTS listing_images (
+                            id INTEGER PRIMARY KEY,
+                            listing_id INTEGER NOT NULL,
+                            image_data TEXT NOT NULL,
+                            is_primary BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (listing_id) REFERENCES car_listings (id)
+                        )
+                    ''',
+                    'bookings': '''
+                        CREATE TABLE IF NOT EXISTS bookings (
+                            id INTEGER PRIMARY KEY,
+                            user_email TEXT NOT NULL,
+                            car_id INTEGER NOT NULL,
+                            pickup_date TEXT NOT NULL,
+                            return_date TEXT NOT NULL,
+                            location TEXT NOT NULL,
+                            total_price REAL NOT NULL,
+                            insurance BOOLEAN,
+                            driver BOOLEAN,
+                            delivery BOOLEAN,
+                            vip_service BOOLEAN,
+                            booking_status TEXT DEFAULT 'pending',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            insurance_price REAL DEFAULT 0,
+                            driver_price REAL DEFAULT 0,
+                            delivery_price REAL DEFAULT 0,
+                            vip_service_price REAL DEFAULT 0,
+                            FOREIGN KEY (user_email) REFERENCES users (email),
+                            FOREIGN KEY (car_id) REFERENCES car_listings (id)
+                        )
+                    ''',
+                    'insurance_claims': '''
+                        CREATE TABLE IF NOT EXISTS insurance_claims (
+                            id INTEGER PRIMARY KEY,
+                            booking_id INTEGER NOT NULL,
+                            user_email TEXT NOT NULL,
+                            claim_date TEXT NOT NULL,
+                            incident_date TEXT NOT NULL,
+                            description TEXT NOT NULL,
+                            damage_type TEXT NOT NULL,
+                            claim_amount REAL NOT NULL,
+                            evidence_images TEXT,
+                            claim_status TEXT DEFAULT 'pending',
+                            admin_notes TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (booking_id) REFERENCES bookings (id),
+                            FOREIGN KEY (user_email) REFERENCES users (email)
+                        )
+                    ''',
+                    'notifications': '''
+                        CREATE TABLE IF NOT EXISTS notifications (
+                            id INTEGER PRIMARY KEY,
+                            user_email TEXT NOT NULL,
+                            message TEXT NOT NULL,
+                            type TEXT NOT NULL,
+                            read BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_email) REFERENCES users (email)
+                        )
+                    ''',
+                    'admin_reviews': '''
+                        CREATE TABLE IF NOT EXISTS admin_reviews (
+                            id INTEGER PRIMARY KEY,
+                            listing_id INTEGER NOT NULL,
+                            admin_email TEXT NOT NULL,
+                            comment TEXT,
+                            review_status TEXT NOT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (listing_id) REFERENCES car_listings (id),
+                            FOREIGN KEY (admin_email) REFERENCES users (email)
+                        )
+                    ''',
+                    'subscription_history': '''
+                        CREATE TABLE IF NOT EXISTS subscription_history (
+                            id INTEGER PRIMARY KEY,
+                            user_email TEXT NOT NULL,
+                            plan_type TEXT NOT NULL,
+                            start_date TEXT NOT NULL,
+                            end_date TEXT NOT NULL,
+                            amount_paid REAL NOT NULL,
+                            payment_method TEXT,
+                            status TEXT DEFAULT 'active',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_email) REFERENCES users (email)
+                        )
+                    ''',
+                    'reviews': '''
+                        CREATE TABLE IF NOT EXISTS reviews (
+                            id INTEGER PRIMARY KEY,
+                            booking_id INTEGER NOT NULL,
+                            user_email TEXT NOT NULL,
+                            car_id INTEGER NOT NULL,
+                            rating INTEGER NOT NULL,
+                            comment TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (booking_id) REFERENCES bookings (id),
+                            FOREIGN KEY (user_email) REFERENCES users (email),
+                            FOREIGN KEY (car_id) REFERENCES car_listings (id)
+                        )
+                    '''
+                }
+                
+                # Indexes to create
+                indexes = [
+                    'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)',
+                    'CREATE INDEX IF NOT EXISTS idx_listings_status ON car_listings(listing_status)',
+                    'CREATE INDEX IF NOT EXISTS idx_listings_category ON car_listings(category)',
+                    'CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status)',
+                    'CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_email, read)',
+                    'CREATE INDEX IF NOT EXISTS idx_claims_status ON insurance_claims(claim_status)',
+                    'CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscription_history(user_email)',
+                    'CREATE INDEX IF NOT EXISTS idx_reviews_car_id ON reviews(car_id)',
+                    'CREATE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id)'
+                ]
+                
+                # Check and create missing tables
+                for table_name, table_schema in table_schemas.items():
+                    c.execute(table_schema)
+                
+                # Create indexes
+                for index_query in indexes:
+                    c.execute(index_query)
+                
+                # Ensure sample data is added if no listings exist
+                c.execute('SELECT COUNT(*) FROM car_listings')
+                if c.fetchone()[0] == 0:
+                    # Create admin user if not exists
+                    c.execute('SELECT * FROM users WHERE email = ?', ('admin@luxuryrentals.com',))
+                    if not c.fetchone():
+                        admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
+                        c.execute('''
+                            INSERT INTO users (full_name, email, phone, password, role)
+                            VALUES (?, ?, ?, ?, ?)
+                        ''', (
+                            'Admin User',
+                            'admin@luxuryrentals.com',
+                            '+971500000000',
+                            admin_password,
+                            'admin'
+                        ))
+                    
+                    # Add sample car data
+                    add_sample_data(c)
+                
+                conn.commit()
+                print("Database tables checked and updated successfully")
             
-            # Comprehensive table creation dictionary
-            table_schemas = {
-                'users': '''
-                    CREATE TABLE users (
-                        id INTEGER PRIMARY KEY,
-                        full_name TEXT NOT NULL,
-                        email TEXT UNIQUE NOT NULL,
-                        phone TEXT NOT NULL,
-                        password TEXT NOT NULL,
-                        role TEXT DEFAULT 'user',
-                        profile_picture TEXT,
-                        subscription_type TEXT DEFAULT 'free_renter',
-                        subscription_expiry TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''',
-                'car_listings': '''
-                    CREATE TABLE car_listings (
-                        id INTEGER PRIMARY KEY,
-                        owner_email TEXT NOT NULL,
-                        model TEXT NOT NULL,
-                        year INTEGER NOT NULL,
-                        price REAL NOT NULL,
-                        location TEXT NOT NULL,
-                        description TEXT,
-                        category TEXT NOT NULL,
-                        specs TEXT NOT NULL,
-                        listing_status TEXT DEFAULT 'pending',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (owner_email) REFERENCES users (email)
-                    )
-                ''',
-                'listing_images': '''
-                    CREATE TABLE listing_images (
-                        id INTEGER PRIMARY KEY,
-                        listing_id INTEGER NOT NULL,
-                        image_data TEXT NOT NULL,
-                        is_primary BOOLEAN DEFAULT FALSE,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (listing_id) REFERENCES car_listings (id)
-                    )
-                ''',
-                'bookings': '''
-                    CREATE TABLE bookings (
-                        id INTEGER PRIMARY KEY,
-                        user_email TEXT NOT NULL,
-                        car_id INTEGER NOT NULL,
-                        pickup_date TEXT NOT NULL,
-                        return_date TEXT NOT NULL,
-                        location TEXT NOT NULL,
-                        total_price REAL NOT NULL,
-                        insurance BOOLEAN,
-                        driver BOOLEAN,
-                        delivery BOOLEAN,
-                        vip_service BOOLEAN,
-                        booking_status TEXT DEFAULT 'pending',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        insurance_price REAL DEFAULT 0,
-                        driver_price REAL DEFAULT 0,
-                        delivery_price REAL DEFAULT 0,
-                        vip_service_price REAL DEFAULT 0,
-                        FOREIGN KEY (user_email) REFERENCES users (email),
-                        FOREIGN KEY (car_id) REFERENCES car_listings (id)
-                    )
-                ''',
-                'insurance_claims': '''
-                    CREATE TABLE insurance_claims (
-                        id INTEGER PRIMARY KEY,
-                        booking_id INTEGER NOT NULL,
-                        user_email TEXT NOT NULL,
-                        claim_date TEXT NOT NULL,
-                        incident_date TEXT NOT NULL,
-                        description TEXT NOT NULL,
-                        damage_type TEXT NOT NULL,
-                        claim_amount REAL NOT NULL,
-                        evidence_images TEXT,
-                        claim_status TEXT DEFAULT 'pending',
-                        admin_notes TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (booking_id) REFERENCES bookings (id),
-                        FOREIGN KEY (user_email) REFERENCES users (email)
-                    )
-                ''',
-                'notifications': '''
-                    CREATE TABLE notifications (
-                        id INTEGER PRIMARY KEY,
-                        user_email TEXT NOT NULL,
-                        message TEXT NOT NULL,
-                        type TEXT NOT NULL,
-                        read BOOLEAN DEFAULT FALSE,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_email) REFERENCES users (email)
-                    )
-                ''',
-                'admin_reviews': '''
-                    CREATE TABLE admin_reviews (
-                        id INTEGER PRIMARY KEY,
-                        listing_id INTEGER NOT NULL,
-                        admin_email TEXT NOT NULL,
-                        comment TEXT,
-                        review_status TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (listing_id) REFERENCES car_listings (id),
-                        FOREIGN KEY (admin_email) REFERENCES users (email)
-                    )
-                ''',
-                'subscription_history': '''
-                    CREATE TABLE subscription_history (
-                        id INTEGER PRIMARY KEY,
-                        user_email TEXT NOT NULL,
-                        plan_type TEXT NOT NULL,
-                        start_date TEXT NOT NULL,
-                        end_date TEXT NOT NULL,
-                        amount_paid REAL NOT NULL,
-                        payment_method TEXT,
-                        status TEXT DEFAULT 'active',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_email) REFERENCES users (email)
-                    )
-                ''',
-                'reviews': '''
-                    CREATE TABLE reviews (
-                        id INTEGER PRIMARY KEY,
-                        booking_id INTEGER NOT NULL,
-                        user_email TEXT NOT NULL,
-                        car_id INTEGER NOT NULL,
-                        rating INTEGER NOT NULL,
-                        comment TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (booking_id) REFERENCES bookings (id),
-                        FOREIGN KEY (user_email) REFERENCES users (email),
-                        FOREIGN KEY (car_id) REFERENCES car_listings (id)
-                    )
-                '''
-            }
-                           
-                conn.close()
             except sqlite3.Error as e:
                 st.error(f"Database error during setup: {e}")
-      
+                print(f"Database error: {e}")
+            finally:
+                if conn:
+                    conn.close()
+        
         # Initialize session state variables if not already set
         if 'logged_in' not in st.session_state:
             st.session_state.logged_in = False
