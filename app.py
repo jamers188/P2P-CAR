@@ -928,33 +928,32 @@ def setup_database():
         c.execute('CREATE INDEX IF NOT EXISTS idx_reviews_car_id ON reviews(car_id)')
 
         # Create admin user only if database is new
-        # Create admin user only if database is new
-            if not db_exists:
-                admin_password = hash_password('admin123')
-                c.execute('''
-                    INSERT INTO users (full_name, email, phone, password, role)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (
-                    'Admin User',
-                    'admin@luxuryrentals.com',
-                    '+971500000000',
-                    admin_password,
-                    'admin'
+        if not db_exists:
+            admin_password = hash_password('admin123')
+            c.execute('''
+                INSERT INTO users (full_name, email, phone, password, role)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                'Admin User',
+                'admin@luxuryrentals.com',
+                '+971500000000',
+                admin_password,
+                'admin'
                 ))
                 
-                # Add sample car data for a better user experience
-                add_sample_data(c)
+            # Add sample car data for a better user experience
+            add_sample_data(c)
 
-            conn.commit()
-            print("Database initialized successfully")
+        conn.commit()
+        print("Database initialized successfully")
         
-        except sqlite3.Error as e:
-            print(f"Database error: {e}")
-            st.error(f"Database error: {e}")
-            raise
-        finally:
-            if conn:
-                conn.close()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        st.error(f"Database error: {e}")
+        raise
+    finally:
+         if conn:
+              conn.close()
 
 
 # Add sample data for better demonstration
