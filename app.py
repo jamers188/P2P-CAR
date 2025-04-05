@@ -11,6 +11,224 @@ import json
 import time
 from dateutil.relativedelta import relativedelta
 
+import streamlit as st
+
+# Expanded list of 30 luxury cars with real images
+cars = [
+    {
+        "model": "Lamborghini Huracan EVO",
+        "year": 2022,
+        "price": 1500,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/lamborghini-huracan-evo.webp"
+    },
+    {
+        "model": "Ferrari 488 GTB",
+        "year": 2021,
+        "price": 1400,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/ferrari-488-gtb.webp"
+    },
+    {
+        "model": "Porsche 911 Turbo S",
+        "year": 2023,
+        "price": 1200,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/porsche-911-turbo-s.webp"
+    },
+    {
+        "model": "McLaren 720S",
+        "year": 2022,
+        "price": 1600,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/mclaren-720s.webp"
+    },
+    {
+        "model": "Aston Martin DBS Superleggera",
+        "year": 2021,
+        "price": 1300,
+        "category": "Grand Tourer",
+        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/aston-martin-dbs-superleggera.webp"
+    },
+    {
+        "model": "Bentley Continental GT",
+        "year": 2023,
+        "price": 1100,
+        "category": "Grand Tourer",
+        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/bentley-continental-gt.webp"
+    },
+    {
+        "model": "Rolls-Royce Phantom",
+        "year": 2022,
+        "price": 2500,
+        "category": "Luxury Sedan",
+        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/rolls-royce-phantom.webp"
+    },
+    {
+        "model": "Mercedes-Maybach S-Class",
+        "year": 2023,
+        "price": 1800,
+        "category": "Luxury Sedan",
+        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/mercedes-maybach-s-class.webp"
+    },
+    {
+        "model": "BMW 7 Series",
+        "year": 2023,
+        "price": 900,
+        "category": "Luxury Sedan",
+        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/bmw-7-series.webp"
+    },
+    {
+        "model": "Audi R8 V10",
+        "year": 2022,
+        "price": 1350,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/audi-r8-v10.webp"
+    },
+    {
+        "model": "Bugatti Chiron",
+        "year": 2021,
+        "price": 5000,
+        "category": "Hypercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/bugatti-chiron.webp"
+    },
+    {
+        "model": "Koenigsegg Jesko",
+        "year": 2023,
+        "price": 4800,
+        "category": "Hypercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/koenigsegg-jesko.webp"
+    },
+    {
+        "model": "Pagani Huayra",
+        "year": 2022,
+        "price": 4500,
+        "category": "Hypercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/pagani-huayra.webp"
+    },
+    {
+        "model": "Ferrari SF90 Stradale",
+        "year": 2023,
+        "price": 2200,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/ferrari-sf90-stradale.webp"
+    },
+    {
+        "model": "Lamborghini Aventador SVJ",
+        "year": 2021,
+        "price": 2000,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/lamborghini-aventador-svj.webp"
+    },
+    {
+        "model": "Mercedes-AMG GT R",
+        "year": 2022,
+        "price": 1150,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/mercedes-amg-gt-r.webp"
+    },
+    {
+        "model": "Aston Martin Valkyrie",
+        "year": 2023,
+        "price": 3500,
+        "category": "Hypercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/aston-martin-valkyrie.webp"
+    },
+    {
+        "model": "Porsche Taycan Turbo S",
+        "year": 2023,
+        "price": 1250,
+        "category": "Electric",
+        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/porsche-taycan-turbo-s.webp"
+    },
+    {
+        "model": "Tesla Model S Plaid",
+        "year": 2023,
+        "price": 950,
+        "category": "Electric",
+        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/tesla-model-s-plaid.webp"
+    },
+    {
+        "model": "Rimac Nevera",
+        "year": 2023,
+        "price": 3000,
+        "category": "Electric",
+        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/rimac-nevera.webp"
+    },
+    {
+        "model": "Range Rover Autobiography",
+        "year": 2023,
+        "price": 850,
+        "category": "Luxury SUV",
+        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/range-rover-autobiography.webp"
+    },
+    {
+        "model": "Bentley Bentayga",
+        "year": 2022,
+        "price": 1100,
+        "category": "Luxury SUV",
+        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/bentley-bentayga.webp"
+    },
+    {
+        "model": "Rolls-Royce Cullinan",
+        "year": 2023,
+        "price": 2300,
+        "category": "Luxury SUV",
+        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/rolls-royce-cullinan.webp"
+    },
+    {
+        "model": "Mercedes G-Class",
+        "year": 2023,
+        "price": 1050,
+        "category": "Luxury SUV",
+        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/mercedes-g-class.webp"
+    },
+    {
+        "model": "Ferrari Roma",
+        "year": 2022,
+        "price": 1300,
+        "category": "Grand Tourer",
+        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/ferrari-roma.webp"
+    },
+    {
+        "model": "Maserati MC20",
+        "year": 2023,
+        "price": 1400,
+        "category": "Supercar",
+        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/maserati-mc20.webp"
+    },
+    {
+        "model": "Lotus Evija",
+        "year": 2023,
+        "price": 2800,
+        "category": "Electric",
+        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/lotus-evija.webp"
+    },
+    {
+        "model": "Lexus LC 500",
+        "year": 2023,
+        "price": 800,
+        "category": "Grand Tourer",
+        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/lexus-lc-500.webp"
+    },
+    {
+        "model": "Jaguar F-Type R",
+        "year": 2022,
+        "price": 750,
+        "category": "Sports Car",
+        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/jaguar-f-type-r.webp"
+    },
+    {
+        "model": "Chevrolet Corvette C8",
+        "year": 2023,
+        "price": 950,
+        "category": "Sports Car",
+        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/chevrolet-corvette-c8.webp"
+    }
+]
+
+
+
 # Page config and custom CSS
 st.set_page_config(
     page_title="Luxury Car Rentals",
@@ -144,6 +362,29 @@ if 'current_page' not in st.session_state:
 if 'selected_car' not in st.session_state:
     st.session_state.selected_car = None
 
+# Function to display a car card
+def display_car(car):
+    st.markdown(f"""
+        <div class='card'>
+            <img src='{car["image_url"]}' alt='{car["model"]}' style='width:100%; border-radius:10px;'>
+            <h3>{car["model"]} ({car["year"]})</h3>
+            <p><strong>Price:</strong> ${car["price"]}/day</p>
+            <p><strong>Category:</strong> {car["category"]}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+# Display cars by category
+st.title("Luxury Car Rentals")
+
+categories = set(car["category"] for car in cars)
+for category in categories:
+    st.header(category)
+    filtered_cars = [car for car in cars if car["category"] == category]
+    cols = st.columns(3)
+    for idx, car in enumerate(filtered_cars):
+        with cols[idx % 3]:
+            display_car(car)
+            
 # Database setup - Modified for persistent storage
 def setup_database():
     try:
