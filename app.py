@@ -919,7 +919,7 @@ def resize_image_if_needed(image, max_size=(800, 800)):
 
 # Page Components
 def welcome_page():
-    logo_url = "kipride.png"  # Assumes the image is in the same directory as the script
+    logo_url = "https://raw.githubusercontent.com/jamers188/P2P-CAR/main/kipride.png"  # Update with the raw URL
     st.markdown(f"""
         <div style='text-align: center;'>
             <img src="{logo_url}" alt="Luxury Car Rentals" style='max-width: 300px;'>
