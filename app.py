@@ -11,388 +11,14 @@ import json
 import time
 from dateutil.relativedelta import relativedelta
 
-import streamlit as st
-
-# Expanded list of 30 luxury cars with real images
-cars = [
-    {
-        "model": "Lamborghini Huracan EVO",
-        "year": 2022,
-        "price": 1500,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/lamborghini-huracan-evo.webp"
-    },
-    {
-        "model": "Ferrari 488 GTB",
-        "year": 2021,
-        "price": 1400,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/ferrari-488-gtb.webp"
-    },
-    {
-        "model": "Porsche 911 Turbo S",
-        "year": 2023,
-        "price": 1200,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/porsche-911-turbo-s.webp"
-    },
-    {
-        "model": "McLaren 720S",
-        "year": 2022,
-        "price": 1600,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/mclaren-720s.webp"
-    },
-    {
-        "model": "Aston Martin DBS Superleggera",
-        "year": 2021,
-        "price": 1300,
-        "category": "Grand Tourer",
-        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/aston-martin-dbs-superleggera.webp"
-    },
-    {
-        "model": "Bentley Continental GT",
-        "year": 2023,
-        "price": 1100,
-        "category": "Grand Tourer",
-        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/bentley-continental-gt.webp"
-    },
-    {
-        "model": "Rolls-Royce Phantom",
-        "year": 2022,
-        "price": 2500,
-        "category": "Luxury Sedan",
-        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/rolls-royce-phantom.webp"
-    },
-    {
-        "model": "Mercedes-Maybach S-Class",
-        "year": 2023,
-        "price": 1800,
-        "category": "Luxury Sedan",
-        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/mercedes-maybach-s-class.webp"
-    },
-    {
-        "model": "BMW 7 Series",
-        "year": 2023,
-        "price": 900,
-        "category": "Luxury Sedan",
-        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/bmw-7-series.webp"
-    },
-    {
-        "model": "Audi R8 V10",
-        "year": 2022,
-        "price": 1350,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/audi-r8-v10.webp"
-    },
-    {
-        "model": "Bugatti Chiron",
-        "year": 2021,
-        "price": 5000,
-        "category": "Hypercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/bugatti-chiron.webp"
-    },
-    {
-        "model": "Koenigsegg Jesko",
-        "year": 2023,
-        "price": 4800,
-        "category": "Hypercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/koenigsegg-jesko.webp"
-    },
-    {
-        "model": "Pagani Huayra",
-        "year": 2022,
-        "price": 4500,
-        "category": "Hypercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/pagani-huayra.webp"
-    },
-    {
-        "model": "Ferrari SF90 Stradale",
-        "year": 2023,
-        "price": 2200,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/ferrari-sf90-stradale.webp"
-    },
-    {
-        "model": "Lamborghini Aventador SVJ",
-        "year": 2021,
-        "price": 2000,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/lamborghini-aventador-svj.webp"
-    },
-    {
-        "model": "Mercedes-AMG GT R",
-        "year": 2022,
-        "price": 1150,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/mercedes-amg-gt-r.webp"
-    },
-    {
-        "model": "Aston Martin Valkyrie",
-        "year": 2023,
-        "price": 3500,
-        "category": "Hypercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/aston-martin-valkyrie.webp"
-    },
-    {
-        "model": "Porsche Taycan Turbo S",
-        "year": 2023,
-        "price": 1250,
-        "category": "Electric",
-        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/porsche-taycan-turbo-s.webp"
-    },
-    {
-        "model": "Tesla Model S Plaid",
-        "year": 2023,
-        "price": 950,
-        "category": "Electric",
-        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/tesla-model-s-plaid.webp"
-    },
-    {
-        "model": "Rimac Nevera",
-        "year": 2023,
-        "price": 3000,
-        "category": "Electric",
-        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/rimac-nevera.webp"
-    },
-    {
-        "model": "Range Rover Autobiography",
-        "year": 2023,
-        "price": 850,
-        "category": "Luxury SUV",
-        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/range-rover-autobiography.webp"
-    },
-    {
-        "model": "Bentley Bentayga",
-        "year": 2022,
-        "price": 1100,
-        "category": "Luxury SUV",
-        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/bentley-bentayga.webp"
-    },
-    {
-        "model": "Rolls-Royce Cullinan",
-        "year": 2023,
-        "price": 2300,
-        "category": "Luxury SUV",
-        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/rolls-royce-cullinan.webp"
-    },
-    {
-        "model": "Mercedes G-Class",
-        "year": 2023,
-        "price": 1050,
-        "category": "Luxury SUV",
-        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/mercedes-g-class.webp"
-    },
-    {
-        "model": "Ferrari Roma",
-        "year": 2022,
-        "price": 1300,
-        "category": "Grand Tourer",
-        "image_url": "https://cdn.motor1.com/images/mgl/9MOXw/s1/ferrari-roma.webp"
-    },
-    {
-        "model": "Maserati MC20",
-        "year": 2023,
-        "price": 1400,
-        "category": "Supercar",
-        "image_url": "https://cdn.motor1.com/images/mgl/4RAG0/s1/maserati-mc20.webp"
-    },
-    {
-        "model": "Lotus Evija",
-        "year": 2023,
-        "price": 2800,
-        "category": "Electric",
-        "image_url": "https://cdn.motor1.com/images/mgl/1xGqk/s1/lotus-evija.webp"
-    },
-    {
-        "model": "Lexus LC 500",
-        "year": 2023,
-        "price": 800,
-        "category": "Grand Tourer",
-        "image_url": "https://cdn.motor1.com/images/mgl/2ZJxY/s1/lexus-lc-500.webp"
-    },
-    {
-        "model": "Jaguar F-Type R",
-        "year": 2022,
-        "price": 750,
-        "category": "Sports Car",
-        "image_url": "https://cdn.motor1.com/images/mgl/7e8Qo/s1/jaguar-f-type-r.webp"
-    },
-    {
-        "model": "Chevrolet Corvette C8",
-        "year": 2023,
-        "price": 950,
-        "category": "Sports Car",
-        "image_url": "https://cdn.motor1.com/images/mgl/6qR4A/s1/chevrolet-corvette-c8.webp"
-    }
-]
-
-
-
-# Page config and custom CSS
-st.set_page_config(
-    page_title="Luxury Car Rentals",
-    page_icon="🚗",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-st.markdown("""
-    <style>
-        /* Root Variables for Theming */
-        :root {
-            --primary-color: #4B0082;
-            --secondary-color: #6A0DAD;
-            --background-color: #F4F4F8;
-            --text-color: #333;
-            --border-radius: 10px;
-        }
-
-        /* Global Styles */
-        .stApp {
-            background-color: var(--background-color);
-            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-            padding: 2rem;
-        }
-
-        /* Layout */
-        .main-content {
-            max-width: 1200px;
-            margin: auto;
-        }
-
-        /* Button Styling */
-        .stButton>button {
-            width: 100%;
-            border-radius: var(--border-radius);
-            height: 3em;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            margin: 5px 0;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .stButton>button:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
-        }
-        
-        /* Input Styling */
-        input[type="text"], input[type="password"] {
-            border-radius: var(--border-radius);
-            padding: 10px 15px;
-            border: 2px solid var(--primary-color);
-            transition: all 0.3s ease;
-        }
-        
-        .stTextInput>div>div>input:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 10px rgba(106,13,173,0.2);
-        }
-        
-        /* Headings */
-        h1, h2, h3 {
-            color: var(--primary-color);
-            text-align: center;
-            padding: 1rem 0;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-        
-        /* Card Styling */
-        .card {
-            background-color: white;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1rem 0;
-            transition: all 0.3s ease;
-            border: 1px solid #e1e1e8;
-        }
-        
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        /* Image Gallery */
-        .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .image-gallery img {
-            width: 100%;
-            border-radius: var(--border-radius);
-            transition: transform 0.3s ease;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        
-        .image-gallery img:hover {
-            transform: scale(1.05);
-        }
-
-        /* Profile Picture */
-        .profile-picture {
-            width: 100px;
-            height: 100px;
-            border-radius: var(--border-radius);
-            object-fit: cover;
-            border: 2px solid var(--primary-color);
-            margin: auto;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# Initialize session state
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'user_email' not in st.session_state:
-    st.session_state.user_email = None
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = 'welcome'
-if 'selected_car' not in st.session_state:
-    st.session_state.selected_car = None
-
-# Function to display a car card
-def display_car(car):
-    st.markdown(f"""
-        <div class='card'>
-            <img src='{car["image_url"]}' alt='{car["model"]}' style='width:100%; border-radius:10px;'>
-            <h3>{car["model"]} ({car["year"]})</h3>
-            <p><strong>Price:</strong> ${car["price"]}/day</p>
-            <p><strong>Category:</strong> {car["category"]}</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-# Display cars by category
-st.title("Luxury Car Rentals")
-
-categories = set(car["category"] for car in cars)
-for category in categories:
-    st.header(category)
-    filtered_cars = [car for car in cars if car["category"] == category]
-    cols = st.columns(3)
-    for idx, car in enumerate(filtered_cars):
-        with cols[idx % 3]:
-            display_car(car)
-            
-# Database setup - Modified for persistent storage
+# Initialize database and session state
 def setup_database():
     try:
         db_exists = os.path.exists('car_rental.db')
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Create users table with profile picture field
+        # Create users table
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -438,7 +64,7 @@ def setup_database():
             )
         ''')
 
-        # Create bookings table with all required columns
+        # Create bookings table
         c.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
@@ -523,7 +149,6 @@ def setup_database():
                 status TEXT DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_email) REFERENCES users (email)
-            )
         ''')
 
         # Create indexes
@@ -559,7 +184,6 @@ def setup_database():
         if conn:
             conn.close()
 
-# Authentication functions
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -762,7 +386,6 @@ def get_subscription_benefits(plan_type):
     
     return benefits.get(plan_type, benefits['free_renter'])
 
-# Notification functions
 def create_notification(user_email, message, type):
     try:
         conn = sqlite3.connect('car_rental.db')
@@ -809,25 +432,20 @@ def mark_notifications_as_read(user_email):
         if 'conn' in locals():
             conn.close()
 
-# Insurance claim functions
 def create_insurance_claim(booking_id, user_email, incident_date, description, damage_type, claim_amount, evidence_images=None):
-    """Create a new insurance claim"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Check if this booking exists and belongs to the user
         c.execute('SELECT * FROM bookings WHERE id = ? AND user_email = ?', (booking_id, user_email))
         booking = c.fetchone()
         
         if not booking:
             return False, "Booking not found or doesn't belong to you"
         
-        # Check if insurance was included in the booking
-        if not booking[7]:  # insurance column
+        if not booking[7]:
             return False, "This booking doesn't include insurance coverage"
         
-        # Insert claim
         c.execute('''
             INSERT INTO insurance_claims 
             (booking_id, user_email, claim_date, incident_date, description, 
@@ -847,14 +465,12 @@ def create_insurance_claim(booking_id, user_email, incident_date, description, d
         
         conn.commit()
         
-        # Create notification for user
         create_notification(
             user_email,
             f"Your insurance claim for booking #{booking_id} has been submitted for review.",
             "claim_submitted"
         )
         
-        # Create notification for admin
         admin_email = "admin@luxuryrentals.com"
         create_notification(
             admin_email,
@@ -871,19 +487,16 @@ def create_insurance_claim(booking_id, user_email, incident_date, description, d
             conn.close()
 
 def update_claim_status(claim_id, new_status, admin_notes=None):
-    """Update insurance claim status"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Get claim details first
         c.execute('SELECT user_email, booking_id FROM insurance_claims WHERE id = ?', (claim_id,))
         claim = c.fetchone()
         
         if not claim:
             return False, "Claim not found"
         
-        # Update claim status
         if admin_notes:
             c.execute(
                 'UPDATE insurance_claims SET claim_status = ?, admin_notes = ? WHERE id = ?',
@@ -897,7 +510,6 @@ def update_claim_status(claim_id, new_status, admin_notes=None):
             
         conn.commit()
         
-        # Create notification for user
         user_email, booking_id = claim
         create_notification(
             user_email,
@@ -913,21 +525,16 @@ def update_claim_status(claim_id, new_status, admin_notes=None):
         if 'conn' in locals():
             conn.close()
 
-
-# Utility functions
 def create_folder_structure():
-    """Create necessary folders for the application"""
     folders = ['images', 'temp', 'uploads']
     for folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
 def format_currency(amount):
-    """Format amount as AED currency"""
     return f"AED {amount:,.2f}"
 
 def get_location_options():
-    """Get list of available locations"""
     return [
         'Dubai Marina',
         'Palm Jumeirah',
@@ -938,7 +545,6 @@ def get_location_options():
     ]
 
 def get_car_categories():
-    """Get list of car categories"""
     return [
         'Luxury',
         'SUV',
@@ -949,7 +555,6 @@ def get_car_categories():
     ]
 
 def get_damage_types():
-    """Get list of damage types for insurance claims"""
     return [
         'Minor Scratch/Dent',
         'Major Body Damage',
@@ -965,38 +570,29 @@ def get_damage_types():
         'Other'
     ]
 
-# Image handling functions
 def save_uploaded_image(uploaded_file):
-    """Save uploaded image and return base64 string"""
     try:
         image = Image.open(uploaded_file)
-        # Resize image if too large
         max_size = (1200, 1200)
         image.thumbnail(max_size, Image.LANCZOS)
         
-        # Convert to JPEG format
         if image.mode in ('RGBA', 'P'):
             image = image.convert('RGB')
             
-        # Save to bytes
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='JPEG', quality=85)
         img_byte_arr = img_byte_arr.getvalue()
         
-        # Convert to base64
         return base64.b64encode(img_byte_arr).decode()
     except Exception as e:
         print(f"Error processing image: {e}")
         return None
 
 def validate_image(uploaded_file):
-    """Validate uploaded image"""
     try:
-        # Check file size (max 5MB)
         if uploaded_file.size > 5 * 1024 * 1024:
             return False, "Image size should be less than 5MB"
             
-        # Check file type
         image = Image.open(uploaded_file)
         if image.format not in ['JPEG', 'PNG']:
             return False, "Only JPEG and PNG images are allowed"
@@ -1006,18 +602,419 @@ def validate_image(uploaded_file):
         return False, f"Invalid image: {str(e)}"
 
 def resize_image_if_needed(image, max_size=(800, 800)):
-    """Resize image if larger than max_size"""
     if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
         image.thumbnail(max_size, Image.LANCZOS)
     return image
 
+# Sample car data with working image URLs
+cars = [
+    {
+        "model": "Lamborghini Huracan EVO",
+        "year": 2022,
+        "price": 1500,
+        "category": "Supercar",
+        "image_url": "https://www.lamborghini.com/sites/it-en/files/DAM/lamborghini/facelift_2019/models_gw/images-s/2023/03_29/gate_family_s_03_m.jpg"
+    },
+    {
+        "model": "Ferrari 488 GTB",
+        "year": 2021,
+        "price": 1400,
+        "category": "Supercar",
+        "image_url": "https://www.ferrari.com/en-EN/auto/ferrari-488-gtb"
+    },
+    {
+        "model": "Porsche 911 Turbo S",
+        "year": 2023,
+        "price": 1200,
+        "category": "Supercar",
+        "image_url": "https://www.porsche.com/usa/models/911/911-turbo-models/911-turbo-s/"
+    },
+    {
+        "model": "McLaren 720S",
+        "year": 2022,
+        "price": 1600,
+        "category": "Supercar",
+        "image_url": "https://cars.mclaren.com/en/super-series/720s"
+    },
+    {
+        "model": "Aston Martin DBS Superleggera",
+        "year": 2021,
+        "price": 1300,
+        "category": "Grand Tourer",
+        "image_url": "https://www.astonmartin.com/en/models/dbs-superleggera"
+    },
+    {
+        "model": "Bentley Continental GT",
+        "year": 2023,
+        "price": 1100,
+        "category": "Grand Tourer",
+        "image_url": "https://www.bentleymotors.com/en/models/continental/continental-gt.html"
+    },
+    {
+        "model": "Rolls-Royce Phantom",
+        "year": 2022,
+        "price": 2500,
+        "category": "Luxury Sedan",
+        "image_url": "https://www.rolls-roycemotorcars.com/en_GB/showroom/phantom.html"
+    },
+    {
+        "model": "Mercedes-Maybach S-Class",
+        "year": 2023,
+        "price": 1800,
+        "category": "Luxury Sedan",
+        "image_url": "https://www.mbusa.com/en/vehicles/class/maybach/s-class/sedan"
+    },
+    {
+        "model": "BMW 7 Series",
+        "year": 2023,
+        "price": 900,
+        "category": "Luxury Sedan",
+        "image_url": "https://www.bmwusa.com/vehicles/7-series/sedan/overview.html"
+    },
+    {
+        "model": "Audi R8 V10",
+        "year": 2022,
+        "price": 1350,
+        "category": "Supercar",
+        "image_url": "https://www.audi.com/en/models/r8/r8-coupe.html"
+    },
+    {
+        "model": "Bugatti Chiron",
+        "year": 2021,
+        "price": 5000,
+        "category": "Hypercar",
+        "image_url": "https://www.bugatti.com/the-bugatti-models/chiron/"
+    },
+    {
+        "model": "Koenigsegg Jesko",
+        "year": 2023,
+        "price": 4800,
+        "category": "Hypercar",
+        "image_url": "https://www.koenigsegg.com/model/jesko/"
+    },
+    {
+        "model": "Pagani Huayra",
+        "year": 2022,
+        "price": 4500,
+        "category": "Hypercar",
+        "image_url": "https://www.pagani.com/huayra/"
+    },
+    {
+        "model": "Ferrari SF90 Stradale",
+        "year": 2023,
+        "price": 2200,
+        "category": "Supercar",
+        "image_url": "https://www.ferrari.com/en-EN/auto/sf90-stradale"
+    },
+    {
+        "model": "Lamborghini Aventador SVJ",
+        "year": 2021,
+        "price": 2000,
+        "category": "Supercar",
+        "image_url": "https://www.lamborghini.com/en-en/models/aventador/aventador-svj"
+    },
+    {
+        "model": "Mercedes-AMG GT R",
+        "year": 2022,
+        "price": 1150,
+        "category": "Supercar",
+        "image_url": "https://www.mbusa.com/en/vehicles/class/amg-gt/coupe"
+    },
+    {
+        "model": "Aston Martin Valkyrie",
+        "year": 2023,
+        "price": 3500,
+        "category": "Hypercar",
+        "image_url": "https://www.astonmartin.com/en/models/aston-martin-valkyrie"
+    },
+    {
+        "model": "Porsche Taycan Turbo S",
+        "year": 2023,
+        "price": 1250,
+        "category": "Electric",
+        "image_url": "https://www.porsche.com/usa/models/taycan/taycan-models/taycan-turbo-s/"
+    },
+    {
+        "model": "Tesla Model S Plaid",
+        "year": 2023,
+        "price": 950,
+        "category": "Electric",
+        "image_url": "https://www.tesla.com/models"
+    },
+    {
+        "model": "Rimac Nevera",
+        "year": 2023,
+        "price": 3000,
+        "category": "Electric",
+        "image_url": "https://www.rimac-automobili.com/nevera/"
+    },
+    {
+        "model": "Range Rover Autobiography",
+        "year": 2023,
+        "price": 850,
+        "category": "Luxury SUV",
+        "image_url": "https://www.landrover.com/vehicles/range-rover/index.html"
+    },
+    {
+        "model": "Bentley Bentayga",
+        "year": 2022,
+        "price": 1100,
+        "category": "Luxury SUV",
+        "image_url": "https://www.bentleymotors.com/en/models/bentayga/bentayga.html"
+    },
+    {
+        "model": "Rolls-Royce Cullinan",
+        "year": 2023,
+        "price": 2300,
+        "category": "Luxury SUV",
+        "image_url": "https://www.rolls-roycemotorcars.com/en_GB/showroom/cullinan.html"
+    },
+    {
+        "model": "Mercedes G-Class",
+        "year": 2023,
+        "price": 1050,
+        "category": "Luxury SUV",
+        "image_url": "https://www.mbusa.com/en/vehicles/class/g-class/suv"
+    },
+    {
+        "model": "Ferrari Roma",
+        "year": 2022,
+        "price": 1300,
+        "category": "Grand Tourer",
+        "image_url": "https://www.ferrari.com/en-EN/auto/ferrari-roma"
+    },
+    {
+        "model": "Maserati MC20",
+        "year": 2023,
+        "price": 1400,
+        "category": "Supercar",
+        "image_url": "https://www.maserati.com/global/en/models/mc20"
+    },
+    {
+        "model": "Lotus Evija",
+        "year": 2023,
+        "price": 2800,
+        "category": "Electric",
+        "image_url": "https://www.lotuscars.com/en-GB/evija"
+    },
+    {
+        "model": "Lexus LC 500",
+        "year": 2023,
+        "price": 800,
+        "category": "Grand Tourer",
+        "image_url": "https://www.lexus.com/models/LC"
+    },
+    {
+        "model": "Jaguar F-Type R",
+        "year": 2022,
+        "price": 750,
+        "category": "Sports Car",
+        "image_url": "https://www.jaguar.com/jaguar-range/f-type/index.html"
+    },
+    {
+        "model": "Chevrolet Corvette C8",
+        "year": 2023,
+        "price": 950,
+        "category": "Sports Car",
+        "image_url": "https://www.chevrolet.com/performance/corvette"
+    }
+]
 
-# Page Components
+# Page config and custom CSS
+st.set_page_config(
+    page_title="Luxury Car Rentals",
+    page_icon="🚗",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.markdown("""
+    <style>
+        :root {
+            --primary-color: #4B0082;
+            --secondary-color: #6A0DAD;
+            --background-color: #F4F4F8;
+            --text-color: #333;
+            --border-radius: 10px;
+        }
+
+        .stApp {
+            background-color: var(--background-color);
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .stButton>button {
+            width: 100%;
+            border-radius: var(--border-radius);
+            height: 3em;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stButton>button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        
+        input[type="text"], input[type="password"] {
+            border-radius: var(--border-radius);
+            padding: 10px 15px;
+            border: 2px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .stTextInput>div>div>input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 10px rgba(106,13,173,0.2);
+        }
+        
+        h1, h2, h3 {
+            color: var(--primary-color);
+            text-align: center;
+            padding: 1rem 0;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            border: 1px solid #e1e1e8;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .image-gallery img {
+            width: 100%;
+            border-radius: var(--border-radius);
+            transition: transform 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        
+        .image-gallery img:hover {
+            transform: scale(1.05);
+        }
+
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--border-radius);
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            margin: auto;
+        }
+        
+        .subscription-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .subscription-card.premium {
+            border-left: 5px solid gold;
+        }
+        
+        .subscription-card.elite {
+            border-left: 5px solid #4B0082;
+        }
+        
+        .subscription-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4B0082;
+            margin: 15px 0;
+        }
+        
+        .subscription-features ul {
+            padding-left: 20px;
+        }
+        
+        .subscription-features li {
+            margin-bottom: 10px;
+        }
+        
+        .insurance-claim-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .status-badge.pending {
+            background-color: #FFC107;
+        }
+        
+        .status-badge.approved {
+            background-color: #28a745;
+        }
+        
+        .status-badge.rejected {
+            background-color: #dc3545;
+        }
+        
+        .admin-review-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = None
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'welcome'
+if 'selected_car' not in st.session_state:
+    st.session_state.selected_car = None
+
 def welcome_page():
-    logo_url = "https://raw.githubusercontent.com/jamers188/P2P-CAR/main/kipride.png"  # Update with the raw URL
     st.markdown(f"""
         <div style='text-align: center;'>
-            <img src="{logo_url}" alt="Luxury Car Rentals" style='max-width: 300px;'>
+            <img src="https://www.logolynx.com/images/logolynx/3e/3e5e0a0a4d1f1b0a0a0a0a0a0a0a0a0a0a0a0a0a.png" alt="Luxury Car Rentals" style='max-width: 300px;'>
         </div>
     """, unsafe_allow_html=True)
     
@@ -1043,6 +1040,7 @@ def welcome_page():
         st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
         if st.button('About Us', key='welcome_about'):
             st.session_state.current_page = 'about_us'
+
 def login_page():
     if st.button('← Back to Welcome', key='login_back'):
         st.session_state.current_page = 'welcome'
@@ -1055,19 +1053,16 @@ def login_page():
         password = st.text_input('Password', type='password')
     
         if st.button('Login', key='login_submit'):
-            # Special case for admin
             if email == "admin@luxuryrentals.com" and password == "admin123":
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.current_page = 'admin_panel'
                 st.success('Admin login successful!')
-                st.rerun()  # Use rerun() instead of experimental_rerun()
-            # Regular user authentication    
+                st.experimental_rerun()
             elif verify_user(email, password):
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 
-                # Get user role
                 role = get_user_role(email)
                 
                 if role == 'admin':
@@ -1077,13 +1072,14 @@ def login_page():
                     st.session_state.current_page = 'browse_cars'
                     st.success('Login successful!')
                 
-                st.rerun()  # Use rerun() instead of experimental_rerun()
+                st.experimental_rerun()
             else:
                 st.error('Invalid credentials')
         
         st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
         if st.button('Forgot Password?', key='forgot_password'):
             st.session_state.current_page = 'reset_password'
+
 def signup_page():
     if st.button('← Back to Welcome', key='signup_back'):
         st.session_state.current_page = 'welcome'
@@ -1098,14 +1094,12 @@ def signup_page():
         password = st.text_input('Password', type='password')
         confirm_password = st.text_input('Confirm Password', type='password')
         
-        # Profile picture upload (optional)
         st.markdown("### Profile Picture (Optional)")
         profile_pic = st.file_uploader("Upload a profile picture", type=["jpg", "jpeg", "png"])
         profile_pic_data = None
         
         if profile_pic:
             try:
-                # Preview the image
                 image = Image.open(profile_pic)
                 col1, col2, col3 = st.columns([1,1,1])
                 with col2:
@@ -1126,16 +1120,13 @@ def signup_page():
                 else:
                     st.error('Email already exists')
 
-
 def browse_cars_page():
     col1, col2 = st.columns([9, 1])
     with col2:
         if st.session_state.logged_in:
-            # Get user info for profile display
             user_info = get_user_info(st.session_state.user_email)
             if user_info:
-                # Display profile picture if available, otherwise just name
-                if user_info[6]:  # profile_picture field
+                if user_info[6]:
                     st.markdown(f"""
                         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
                             <img src="data:image/jpeg;base64,{user_info[6]}" class="profile-picture">
@@ -1151,7 +1142,6 @@ def browse_cars_page():
                         </div>
                     """, unsafe_allow_html=True)
                 
-            # Notifications
             unread_count = get_unread_notifications_count(st.session_state.user_email)
             if unread_count > 0:
                 if st.button(f'🔔 ({unread_count})', key='notifications'):
@@ -1163,10 +1153,8 @@ def browse_cars_page():
     
     st.markdown("<h1>Explore Our Fleet</h1>", unsafe_allow_html=True)
     
-    # Search and filters
     search = st.text_input('Search for your dream car', placeholder='e.g., "Lamborghini"')
     
-    # Category filters
     st.markdown("<h3 style='color: #4B0082; margin-top: 1rem;'>Categories</h3>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1182,95 +1170,56 @@ def browse_cars_page():
             elif st.button('Subscription Plans', key='subscription_plans'):
                 st.session_state.current_page = 'subscription_plans'
     
-    # Display cars
     display_cars(search, luxury, suv, sports)
 
 def display_cars(search="", luxury=False, suv=False, sports=False):
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
+    filtered_cars = cars
     
-    # Get approved listings with primary images
-    query = '''
-        SELECT cl.*, li.image_data
-        FROM car_listings cl
-        LEFT JOIN listing_images li ON cl.id = li.listing_id AND li.is_primary = TRUE
-        WHERE cl.listing_status = 'approved'
-    '''
+    if search:
+        search = search.lower()
+        filtered_cars = [car for car in filtered_cars 
+                         if search in car["model"].lower() or search in car["category"].lower()]
     
-    # Add category filters
-    if any([luxury, suv, sports]):
+    if luxury or suv or sports:
         categories = []
         if luxury:
-            categories.append('Luxury')
+            categories.append("Luxury")
         if suv:
-            categories.append('SUV')
+            categories.append("Luxury SUV")
         if sports:
-            categories.append('Sports')
-        query += f" AND cl.category IN ({','.join(['?']*len(categories))})"
-        params = categories
-    else:
-        params = []
+            categories.append("Sports")
+        filtered_cars = [car for car in filtered_cars if car["category"] in categories]
     
-    # Add search filter
-    if search:
-        query += " AND (cl.model LIKE ? OR cl.description LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-    
-    query += " ORDER BY cl.created_at DESC"
-    
-    c.execute(query, params)
-    listings = c.fetchall()
-    
-    if not listings:
+    if not filtered_cars:
         st.info("No cars found matching your criteria.")
         return
     
-    # Group listings by category
     categorized_listings = {}
-    for listing in listings:
-        category = listing[7]  # Category field
+    for car in filtered_cars:
+        category = car["category"]
         if category not in categorized_listings:
             categorized_listings[category] = []
-        categorized_listings[category].append(listing)
+        categorized_listings[category].append(car)
     
-    # Display listings by category
     for category, cars in categorized_listings.items():
         st.markdown(f"<h2 style='color: #4B0082; margin-top: 2rem;'>{category}</h2>", unsafe_allow_html=True)
         
         cols = st.columns(3)
         for idx, car in enumerate(cars):
             with cols[idx % 3]:
-                specs = json.loads(car[8])  # Parse specs JSON
                 st.markdown(f"""
-                    <div class='car-card'>
-                        <img src='data:image/jpeg;base64,{car[11]}' style='width: 100%; height: 250px; object-fit: cover; border-radius: 10px;'>
-                        <h3 style='color: #4B0082; margin: 1rem 0;'>{car[2]} ({car[3]})</h3>
-                        <p style='color: #666;'>{format_currency(car[4])}/day</p>
-                        <p style='color: #666;'>{car[5]}</p>
-                        <div style='color: #666; font-size: 0.9rem;'>
-                            <p>🏎 {specs['engine']}</p>
-                            <p>📊 {specs.get('mileage', '')}km</p>
-                            <p>⚙️ {specs.get('transmission', '')}</p>
-                        </div>
+                    <div class='card'>
+                        <img src='{car["image_url"]}' alt='{car["model"]}' style='width:100%; height:200px; object-fit:cover; border-radius:10px;'>
+                        <h3>{car["model"]} ({car["year"]})</h3>
+                        <p><strong>Price:</strong> ${car["price"]}/day</p>
+                        <p><strong>Category:</strong> {car["category"]}</p>
                     </div>
                 """, unsafe_allow_html=True)
-                if st.button('View Details', key=f"details_{car[0]}"):
-                    st.session_state.selected_car = {
-                        'id': car[0],
-                        'model': car[2],
-                        'year': car[3],
-                        'price': car[4],
-                        'location': car[5],
-                        'specs': car[8],  # Keep it as is, let show_car_details handle parsing
-                        'image': car[11],
-                        'owner_email': car[1]
-                    }
+                
+                if st.button('View Details', key=f"details_{car['model']}"):
+                    st.session_state.selected_car = car
                     st.session_state.current_page = 'car_details'
-                    st.rerun()
-                 
-    
-    conn.close()
-
+                    st.experimental_rerun()
 
 def subscription_plans_page():
     st.markdown("<h1>Subscription Plans</h1>", unsafe_allow_html=True)
@@ -1278,15 +1227,12 @@ def subscription_plans_page():
     if st.button('← Back to Browse', key='subscription_back'):
         st.session_state.current_page = 'browse_cars'
     
-    # Get user info
     user_info = get_user_info(st.session_state.user_email)
     current_plan = user_info[7] if user_info else 'free_renter'
     
-    # Check if user is primarily a renter or host based on history
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Count bookings vs listings
     c.execute('SELECT COUNT(*) FROM bookings WHERE user_email = ?', (st.session_state.user_email,))
     booking_count = c.fetchone()[0]
     
@@ -1295,10 +1241,8 @@ def subscription_plans_page():
     
     conn.close()
     
-    # Determine if user is primarily a renter or host
     user_type = 'renter' if booking_count >= listing_count else 'host'
     
-    # Subscription plan tabs
     if user_type == 'renter':
         st.markdown("<h2>Plans for Renters</h2>", unsafe_allow_html=True)
         renter_tab1, renter_tab2, renter_tab3 = st.tabs(["Free Plan", "Premium Plan ($20/month)", "Elite VIP Plan ($50/month)"])
@@ -1327,7 +1271,7 @@ def subscription_plans_page():
                 if st.button("Downgrade to Free", key="downgrade_free_renter"):
                     if update_user_subscription(st.session_state.user_email, 'free_renter'):
                         st.success("Successfully downgraded to Free plan!")
-                        st.rerun()
+                        st.experimental_rerun()
         
         with renter_tab2:
             st.markdown("""
@@ -1354,7 +1298,7 @@ def subscription_plans_page():
                 if st.button(f"Subscribe for {duration} {'month' if duration == 1 else 'months'}", key="subscribe_premium_renter"):
                     if update_user_subscription(st.session_state.user_email, 'premium_renter', duration):
                         st.success(f"Successfully subscribed to Premium plan for {duration} {'month' if duration == 1 else 'months'}!")
-                        st.rerun()
+                        st.experimental_rerun()
         
         with renter_tab3:
             st.markdown("""
@@ -1383,7 +1327,7 @@ def subscription_plans_page():
                 if st.button(f"Subscribe for {duration} {'month' if duration == 1 else 'months'}", key="subscribe_elite_renter"):
                     if update_user_subscription(st.session_state.user_email, 'elite_renter', duration):
                         st.success(f"Successfully subscribed to Elite VIP plan for {duration} {'month' if duration == 1 else 'months'}!")
-                        st.rerun()
+                        st.experimental_rerun()
     else:
         st.markdown("<h2>Plans for Hosts</h2>", unsafe_allow_html=True)
         host_tab1, host_tab2, host_tab3 = st.tabs(["Free Plan", "Premium Plan ($50/month)", "Elite Plan ($100/month)"])
@@ -1412,7 +1356,7 @@ def subscription_plans_page():
                 if st.button("Downgrade to Free", key="downgrade_free_host"):
                     if update_user_subscription(st.session_state.user_email, 'free_host'):
                         st.success("Successfully downgraded to Free plan!")
-                        st.rerun()
+                        st.experimental_rerun()
         
         with host_tab2:
             st.markdown("""
@@ -1439,7 +1383,7 @@ def subscription_plans_page():
                 if st.button(f"Subscribe for {duration} {'month' if duration == 1 else 'months'}", key="subscribe_premium_host"):
                     if update_user_subscription(st.session_state.user_email, 'premium_host', duration):
                         st.success(f"Successfully subscribed to Premium plan for {duration} {'month' if duration == 1 else 'months'}!")
-                        st.rerun()
+                        st.experimental_rerun()
         
         with host_tab3:
             st.markdown("""
@@ -1466,7 +1410,7 @@ def subscription_plans_page():
                 if st.button(f"Subscribe for {duration} {'month' if duration == 1 else 'months'}", key="subscribe_elite_host"):
                     if update_user_subscription(st.session_state.user_email, 'elite_host', duration):
                         st.success(f"Successfully subscribed to Elite plan for {duration} {'month' if duration == 1 else 'months'}!")
-                        st.rerun()
+                        st.experimental_rerun()
 
 def insurance_claims_page():
     st.markdown("<h1>Insurance Claims</h1>", unsafe_allow_html=True)
@@ -1474,13 +1418,11 @@ def insurance_claims_page():
     if st.button('← Back to My Bookings', key='claims_back'):
         st.session_state.current_page = 'my_bookings'
     
-    # Show two tabs: Submit New Claim and View Existing Claims
     tab1, tab2 = st.tabs(["Submit New Claim", "My Claims"])
     
     with tab1:
         st.markdown("<h3>Submit New Insurance Claim</h3>", unsafe_allow_html=True)
         
-        # Get user's bookings that have insurance
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         c.execute('''
@@ -1497,21 +1439,17 @@ def insurance_claims_page():
             st.warning("You don't have any bookings with insurance coverage. Insurance must be added at booking time.")
             return
         
-        # Create claim form
         with st.form("claim_form"):
-            # Choose booking
             booking_options = [f"#{b[0]} - {b[1]} ({b[2]}) - {b[3]} to {b[4]}" for b in insured_bookings]
             selected_booking = st.selectbox("Select Insured Booking", booking_options)
             booking_id = int(selected_booking.split('#')[1].split(' ')[0])
             
-            # Incident details
             incident_date = st.date_input("Incident Date")
             damage_type = st.selectbox("Type of Damage", get_damage_types())
             description = st.text_area("Describe the Incident", 
                                       placeholder="Please provide detailed information about what happened...")
             claim_amount = st.number_input("Claim Amount (AED)", min_value=0.0, step=100.0)
             
-            # Evidence upload
             st.markdown("### Upload Evidence")
             evidence_files = st.file_uploader("Upload photos of damage (max 5 files)", 
                                              type=["jpg", "jpeg", "png"], accept_multiple_files=True)
@@ -1521,7 +1459,6 @@ def insurance_claims_page():
                     st.warning("Maximum 5 files allowed. Only the first 5 will be processed.")
                     evidence_files = evidence_files[:5]
                 
-                # Preview images
                 cols = st.columns(len(evidence_files))
                 for i, file in enumerate(cols):
                     with cols[i]:
@@ -1533,7 +1470,6 @@ def insurance_claims_page():
                 if not all([incident_date, damage_type, description, claim_amount > 0]):
                     st.error("Please fill in all required fields")
                 else:
-                    # Process images if provided
                     evidence_images_data = None
                     if evidence_files:
                         evidence_images = []
@@ -1545,7 +1481,6 @@ def insurance_claims_page():
                         if evidence_images:
                             evidence_images_data = json.dumps(evidence_images)
                     
-                    # Create claim
                     success, message = create_insurance_claim(
                         booking_id, 
                         st.session_state.user_email,
@@ -1564,7 +1499,6 @@ def insurance_claims_page():
     with tab2:
         st.markdown("<h3>My Insurance Claims</h3>", unsafe_allow_html=True)
         
-        # Get user's claims
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         c.execute('''
@@ -1582,7 +1516,6 @@ def insurance_claims_page():
             st.info("You haven't submitted any insurance claims yet.")
             return
         
-        # Display claims
         for claim in claims:
             with st.container():
                 claim_id = claim[0]
@@ -1595,7 +1528,6 @@ def insurance_claims_page():
                 car_model = claim[13]
                 car_year = claim[14]
                 
-                # Status color
                 status_colors = {
                     'pending': '#FFC107',
                     'approved': '#28a745',
@@ -1618,8 +1550,7 @@ def insurance_claims_page():
                         <p><strong>Claim Amount:</strong> {format_currency(claim_amount)}</p>
                 """, unsafe_allow_html=True)
                 
-                # Show evidence images if available
-                if claim[8]:  # evidence_images field
+                if claim[8]:
                     try:
                         evidence_images = json.loads(claim[8])
                         if evidence_images:
@@ -1631,7 +1562,6 @@ def insurance_claims_page():
                     except json.JSONDecodeError:
                         st.error("Error loading evidence images")
                 
-                # Show admin notes if available
                 if admin_notes:
                     st.markdown(f"""
                         <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
@@ -1641,119 +1571,79 @@ def insurance_claims_page():
                     """, unsafe_allow_html=True)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
-   
-
 
 def show_car_details(car):
-    # Add a Go Back button
     col1, col2 = st.columns([1,7])
     with col1:
         if st.button('← Back'):
             st.session_state.current_page = 'browse_cars'
             st.session_state.selected_car = None
-            st.rerun()
+            st.experimental_rerun()
     
     st.markdown(f"<h1>{car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
     
-    # Fetch all images for this car
-    conn = sqlite3.connect('car_rental.db')
-    c = conn.cursor()
-    c.execute('SELECT image_data FROM listing_images WHERE listing_id = ?', (car['id'],))
-    images = c.fetchall()
-    conn.close()
-    
-    # Image gallery
-    if images:
-        st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
-        cols = st.columns(len(images))
-        for idx, (img_data,) in enumerate(images):
-            with cols[idx]:
-                st.image(
-                    f"data:image/jpeg;base64,{img_data}", 
-                    caption=f"Image {idx+1}",
-                    use_container_width=True
-                )
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Car details
-    # Use json.loads with error handling
-    try:
-        specs = json.loads(car['specs']) if isinstance(car['specs'], str) else car['specs']
-    except json.JSONDecodeError:
-        specs = {}
+    st.image(car["image_url"], use_column_width=True)
     
     st.markdown(f"""
         <div style='background-color: white; padding: 1rem; border-radius: 10px;'>
             <h3>Car Details</h3>
             <p><strong>Price:</strong> {format_currency(car['price'])}/day</p>
-            <p><strong>Location:</strong> {car['location']}</p>
-            <p><strong>Engine:</strong> {specs.get('engine', 'N/A')}</p>
-            <p><strong>Mileage:</strong> {specs.get('mileage', 'N/A')} km</p>
-            <p><strong>Transmission:</strong> {specs.get('transmission', 'N/A')}</p>
+            <p><strong>Category:</strong> {car['category']}</p>
         </div>
     """, unsafe_allow_html=True)
     
-    # Booking button (only show if logged in)
     if st.session_state.logged_in:
         if st.button('Book Now'):
             st.session_state.current_page = 'book_car'
-            st.rerun()
+            st.experimental_rerun()
     else:
         st.warning("Please login to book this car")
         if st.button('Login'):
             st.session_state.current_page = 'login'
-            st.rerun()
+            st.experimental_rerun()
 
 def book_car_page():
     if st.button('← Back to Car Details'):
         st.session_state.current_page = 'car_details'
-        st.rerun()
+        st.experimental_rerun()
     
-    # Check if a car is selected
     if not st.session_state.selected_car:
         st.error("No car selected")
         st.session_state.current_page = 'browse_cars'
-        st.rerun()
+        st.experimental_rerun()
         return
     
     car = st.session_state.selected_car
     
-    # Get user subscription info for possible discounts
     user_info = get_user_info(st.session_state.user_email)
     subscription_type = user_info[7] if user_info else 'free_renter'
     
     st.markdown(f"<h1>Book {car['model']} ({car['year']})</h1>", unsafe_allow_html=True)
     
-    # Define service prices
     service_prices = {
-        'insurance': 50,  # per day
-        'driver': 100,    # per day
-        'delivery': 200,  # flat rate
-        'vip_service': 300  # flat rate
+        'insurance': 50,
+        'driver': 100,
+        'delivery': 200,
+        'vip_service': 300
     }
     
-    # Apply subscription discounts if applicable
     discount_percentage = 0
     if subscription_type == 'premium_renter':
         discount_percentage = 10
     elif subscription_type == 'elite_renter':
         discount_percentage = 20
     
-    # Booking form
     with st.form("booking_form"):
         st.markdown("### Booking Details")
         
-        # Date selection
         col1, col2 = st.columns(2)
         with col1:
             pickup_date = st.date_input("Pickup Date", min_value=datetime.now().date())
         with col2:
             return_date = st.date_input("Return Date", min_value=pickup_date)
         
-        # Location
         location = st.selectbox("Pickup Location", get_location_options())
         
-        # Additional Services
         st.markdown("### Additional Services")
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1765,11 +1655,9 @@ def book_car_page():
         
         vip_service = st.checkbox(f"VIP Service (Flat AED {service_prices['vip_service']})")
         
-        # Calculate total price
         rental_days = (return_date - pickup_date).days + 1
         base_price = car['price'] * rental_days
         
-        # Additional service costs
         insurance_price = service_prices['insurance'] * rental_days if insurance else 0
         driver_price = service_prices['driver'] * rental_days if driver else 0
         delivery_price = service_prices['delivery'] if delivery else 0
@@ -1777,7 +1665,6 @@ def book_car_page():
         
         subtotal = base_price + insurance_price + driver_price + delivery_price + vip_service_price
         
-        # Apply subscription discount if applicable
         discount_amount = 0
         if discount_percentage > 0:
             discount_amount = (subtotal * discount_percentage / 100)
@@ -1785,7 +1672,6 @@ def book_car_page():
         else:
             total_price = subtotal
         
-        # Display price breakdown
         st.markdown("### Price Breakdown")
         col1, col2 = st.columns(2)
         with col1:
@@ -1800,7 +1686,6 @@ def book_car_page():
             if vip_service:
                 st.write(f"VIP Service: {format_currency(vip_service_price)}")
             
-        # Show subscription discount if applicable
         if discount_percentage > 0:
             st.markdown(f"""
                 <div style="background-color: #E8F5E9; padding: 10px; border-radius: 5px; margin: 10px 0;">
@@ -1811,7 +1696,6 @@ def book_car_page():
         
         st.markdown(f"### Total Cost: {format_currency(total_price)}")
         
-        # Submit booking
         submit = st.form_submit_button("Confirm Booking")
         
         if submit:
@@ -1819,7 +1703,6 @@ def book_car_page():
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
                 
-                # Insert booking
                 c.execute('''
                     INSERT INTO bookings 
                     (user_email, car_id, pickup_date, return_date, location, 
@@ -1845,33 +1728,23 @@ def book_car_page():
                 
                 conn.commit()
                 
-                # Create notification for user
                 create_notification(
                     st.session_state.user_email,
                     f"Booking confirmed for {car['model']} from {pickup_date} to {return_date}",
                     'booking_confirmed'
                 )
                 
-                # Create notification for car owner
-                create_notification(
-                    car['owner_email'],
-                    f"New booking request for your {car['model']} from {pickup_date} to {return_date}",
-                    'new_booking'
-                )
-                
                 st.success("Booking confirmed successfully!")
                 
-                # Reset selected car and move to browse cars
                 st.session_state.selected_car = None
                 st.session_state.current_page = 'browse_cars'
-                st.rerun()
+                st.experimental_rerun()
                 
             except Exception as e:
                 st.error(f"An error occurred while booking: {str(e)}")
             finally:
                 if 'conn' in locals():
                     conn.close()
-
 
 def my_bookings_page():
     st.markdown("<h1>My Bookings</h1>", unsafe_allow_html=True)
@@ -1884,11 +1757,9 @@ def my_bookings_page():
         if st.button('Submit Insurance Claim', key='submit_claim'):
             st.session_state.current_page = 'insurance_claims'
     
-    # Connect to database
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Fetch user's bookings with car details and owner information
     c.execute('''
         SELECT b.*, cl.model, cl.year, cl.owner_email, li.image_data
         FROM bookings b
@@ -1900,14 +1771,11 @@ def my_bookings_page():
     
     bookings = c.fetchall()
     
-    # Clear bookings functionality
     with col2:
-        # Only allow clearing if there are non-pending bookings
         completed_bookings = [b for b in bookings if b[11] != 'pending']
         if completed_bookings:
             if st.button('🗑️ Clear Completed'):
                 try:
-                    # Delete completed bookings
                     c.execute('''
                         DELETE FROM bookings 
                         WHERE user_email = ? AND booking_status != 'pending'
@@ -1923,21 +1791,17 @@ def my_bookings_page():
         conn.close()
         return
     
-    # Get user's subscription type
     user_info = get_user_info(st.session_state.user_email)
     subscription_type = user_info[7] if user_info else 'free_renter'
     
     for booking in bookings:
-        # Unpack booking details
         (booking_id, user_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, 
          insurance_price, driver_price, delivery_price, vip_service_price,
          model, year, owner_email, image_data) = booking
         
-        # Create a card-like container
         with st.container():
-            # Display car image if available
             if image_data:
                 st.image(
                     f"data:image/jpeg;base64,{image_data}", 
@@ -1945,10 +1809,8 @@ def my_bookings_page():
                     caption=f"{model} ({year})"
                 )
             
-            # Car details
             st.subheader(f"{model} ({year})")
             
-            # Status display with color coding
             status_colors = {
                 'pending': 'black',
                 'confirmed': 'green',
@@ -1957,7 +1819,6 @@ def my_bookings_page():
             status_color = status_colors.get(booking_status.lower(), 'blue')
             st.markdown(f"### Booking Status: <span style='color: {status_color};'>{booking_status.upper()}</span>", unsafe_allow_html=True)
             
-            # Booking details
             col1, col2 = st.columns(2)
             with col1:
                 st.write(f"**Booking ID:** #{booking_id}")
@@ -1968,7 +1829,6 @@ def my_bookings_page():
             with col2:
                 st.write(f"**Return Date:** {return_date}")
                 st.write(f"**Total Price:** {format_currency(total_price)}")
-                # Show subscription benefits if applicable
                 if subscription_type in ['premium_renter', 'elite_renter']:
                     benefits = get_subscription_benefits(subscription_type)
                     st.markdown(f"""
@@ -1980,11 +1840,9 @@ def my_bookings_page():
                         </div>
                     """, unsafe_allow_html=True)
             
-            # Price Breakdown
             st.subheader("Price Breakdown")
             col1, col2 = st.columns(2)
             with col1:
-                # Calculate base rental by subtracting additional services
                 base_price = total_price - (insurance_price + driver_price + delivery_price + vip_service_price)
                 st.write(f"Base Rental: {format_currency(base_price)}")
                 
@@ -1998,7 +1856,6 @@ def my_bookings_page():
                 if vip_service:
                     st.write(f"VIP Service: {format_currency(vip_service_price)}")
             
-            # Additional Services
             st.subheader("Additional Services")
             services = []
             if insurance:
@@ -2016,9 +1873,7 @@ def my_bookings_page():
             else:
                 st.info("No additional services selected")
                 
-            # Insurance claim button (only show for confirmed bookings with insurance)
             if booking_status.lower() == 'confirmed' and insurance:
-                # Check if a claim already exists
                 c.execute('SELECT id FROM insurance_claims WHERE booking_id = ?', (booking_id,))
                 existing_claim = c.fetchone()
                 
@@ -2026,7 +1881,7 @@ def my_bookings_page():
                     if st.button(f"File Insurance Claim", key=f"claim_{booking_id}"):
                         st.session_state.selected_booking_for_claim = booking_id
                         st.session_state.current_page = 'insurance_claims'
-                        st.rerun()
+                        st.experimental_rerun()
                 else:
                     st.info(f"You've already submitted a claim for this booking. View it in the Insurance Claims section.")
             
@@ -2042,16 +1897,13 @@ def owner_bookings_page():
         if st.button('← Back to Browse', key='owner_bookings_back'):
             st.session_state.current_page = 'browse_cars'
     
-    # Connect to database
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Get user's subscription type
     user_info = get_user_info(st.session_state.user_email)
     subscription_type = user_info[7] if user_info else 'free_host'
     subscription_benefits = get_subscription_benefits(subscription_type)
     
-    # Fetch bookings for cars owned by the current user
     c.execute('''
         SELECT b.*, cl.model, cl.year, b.user_email as renter_email, li.image_data
         FROM bookings b
@@ -2063,14 +1915,11 @@ def owner_bookings_page():
     
     bookings = c.fetchall()
     
-    # Clear bookings functionality
     with col2:
-        # Only allow clearing if there are non-pending bookings
         completed_bookings = [b for b in bookings if b[11] != 'pending']
         if completed_bookings:
             if st.button('🗑️ Clear Completed'):
                 try:
-                    # Delete completed bookings
                     c.execute('''
                         DELETE FROM bookings 
                         WHERE car_id IN (
@@ -2089,7 +1938,6 @@ def owner_bookings_page():
         conn.close()
         return
     
-    # Display subscription benefits for hosts
     if subscription_type != 'free_host':
         st.markdown(f"""
             <div style="background-color: #E0F7FA; padding: 10px 15px; border-radius: 8px; margin: 15px 0;">
@@ -2101,16 +1949,13 @@ def owner_bookings_page():
         """, unsafe_allow_html=True)
     
     for booking in bookings:
-        # Unpack booking details
         (booking_id, renter_email, car_id, pickup_date, return_date, location, 
          total_price, insurance, driver, delivery, vip_service, 
          booking_status, created_at, 
          insurance_price, driver_price, delivery_price, vip_service_price,
          model, year, booking_renter_email, image_data) = booking
         
-        # Create a container for each booking
         with st.container():
-            # Display car image if available
             if image_data:
                 st.image(
                     f"data:image/jpeg;base64,{image_data}", 
@@ -2118,10 +1963,8 @@ def owner_bookings_page():
                     caption=f"{model} ({year})"
                 )
             
-            # Car and Booking Details
             st.subheader(f"{model} ({year})")
             
-            # Status display with color coding
             status_colors = {
                 'pending': 'yellow',
                 'confirmed': 'green',
@@ -2130,7 +1973,6 @@ def owner_bookings_page():
             status_color = status_colors.get(booking_status.lower(), 'blue')
             st.markdown(f"### Booking Status: <span style='color: {status_color};'>{booking_status.upper()}</span>", unsafe_allow_html=True)
             
-            # Booking details
             col1, col2 = st.columns(2)
             with col1:
                 st.write(f"**Booking ID:** #{booking_id}")
@@ -2141,8 +1983,7 @@ def owner_bookings_page():
             with col2:
                 st.write(f"**Return Date:** {return_date}")
                 
-                # Calculate commission based on subscription
-                commission_rate = 0.15  # default 15%
+                commission_rate = 0.15
                 if subscription_type == 'premium_host':
                     commission_rate = 0.10
                 elif subscription_type == 'elite_host':
@@ -2155,7 +1996,6 @@ def owner_bookings_page():
                 st.write(f"**Platform Fee ({int(commission_rate*100)}%):** {format_currency(commission)}")
                 st.markdown(f"**<span style='color: green;'>Your Earnings:</span> {format_currency(host_earnings)}**", unsafe_allow_html=True)
             
-            # Additional Services
             st.subheader("Included Services")
             services = []
             if insurance:
@@ -2173,7 +2013,6 @@ def owner_bookings_page():
             else:
                 st.info("No additional services included")
             
-            # Approval buttons (only for pending bookings)
             if booking_status.lower() == 'pending':
                 col1, col2 = st.columns(2)
                 with col1:
@@ -2184,14 +2023,12 @@ def owner_bookings_page():
                 if approve or reject:
                     new_status = 'confirmed' if approve else 'rejected'
                     
-                    # Update booking status
                     c.execute('''
                         UPDATE bookings 
                         SET booking_status = ? 
                         WHERE id = ?
                     ''', (new_status, booking_id))
                     
-                    # Create notification for renter
                     create_notification(
                         renter_email,
                         f"Your booking for {model} has been {new_status}.",
@@ -2202,9 +2039,7 @@ def owner_bookings_page():
                     st.success(f"Booking {new_status}")
                     st.experimental_rerun()
             
-            # Display payout info for confirmed bookings
             if booking_status.lower() == 'confirmed':
-                # Calculate payout date based on subscription
                 booking_date = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
                 
                 if subscription_type == 'elite_host':
@@ -2229,14 +2064,12 @@ def owner_bookings_page():
     
     conn.close()
 
-
 def admin_panel():
     st.markdown("<h1>Admin Panel</h1>", unsafe_allow_html=True)
     
     if st.button('← Back to Browse', key='admin_back'):
         st.session_state.current_page = 'browse_cars'
     
-    # Navigation tabs
     tab1, tab2, tab3, tab4 = st.tabs(["Pending Listings", "Approved Listings", "Rejected Listings", "Insurance Claims"])
     
     with tab1:
@@ -2254,7 +2087,6 @@ def show_pending_listings():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Get pending listings
     c.execute('''
         SELECT cl.*, u.full_name, u.email, u.phone
         FROM car_listings cl
@@ -2270,7 +2102,6 @@ def show_pending_listings():
     else:
         for listing in pending_listings:
             with st.container():
-                # Get images for this listing
                 c.execute('SELECT * FROM listing_images WHERE listing_id = ?', (listing[0],))
                 images = c.fetchall()
                 
@@ -2286,7 +2117,6 @@ def show_pending_listings():
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Display images
                 if images:
                     st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
                     cols = st.columns(len(images))
@@ -2299,7 +2129,6 @@ def show_pending_listings():
                             )
                     st.markdown("</div>", unsafe_allow_html=True)
                 
-                # Review form
                 with st.form(key=f"review_form_{listing[0]}"):
                     comment = st.text_area("Review Comment")
                     col1, col2 = st.columns(2)
@@ -2311,14 +2140,12 @@ def show_pending_listings():
                     if approve or reject:
                         status = 'approved' if approve else 'rejected'
                         
-                        # Update listing status
                         c.execute('''
                             UPDATE car_listings 
                             SET listing_status = ? 
                             WHERE id = ?
                         ''', (status, listing[0]))
                         
-                        # Add admin review
                         c.execute('''
                             INSERT INTO admin_reviews 
                             (listing_id, admin_email, comment, review_status)
@@ -2330,7 +2157,6 @@ def show_pending_listings():
                             status
                         ))
                         
-                        # Create notification for owner
                         create_notification(
                             listing[12],
                             f"Your listing for {listing[2]} has been {status}. {comment if comment else ''}",
@@ -2339,7 +2165,7 @@ def show_pending_listings():
                         
                         conn.commit()
                         st.success(f"Listing has been {status}")
-                        st.rerun()
+                        st.experimental_rerun()
     
     conn.close()
 
@@ -2363,7 +2189,6 @@ def show_listings_by_status(status):
     else:
         for listing in listings:
             with st.container():
-                # Get images
                 c.execute('SELECT * FROM listing_images WHERE listing_id = ?', (listing[0],))
                 images = c.fetchall()
                 
@@ -2406,7 +2231,6 @@ def show_admin_insurance_claims():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Get all insurance claims
     c.execute('''
         SELECT ic.*, u.full_name, b.car_id, cl.model, cl.year
         FROM insurance_claims ic
@@ -2423,7 +2247,6 @@ def show_admin_insurance_claims():
         conn.close()
         return
     
-    # Group claims by status
     pending_claims = []
     processed_claims = []
     
@@ -2433,14 +2256,12 @@ def show_admin_insurance_claims():
         else:
             processed_claims.append(claim)
     
-    # Display pending claims first
     if pending_claims:
         st.markdown("<h3>Pending Claims</h3>", unsafe_allow_html=True)
         
         for claim in pending_claims:
             display_admin_claim(claim, conn, c)
     
-    # Display processed claims
     if processed_claims:
         st.markdown("<h3>Processed Claims</h3>", unsafe_allow_html=True)
         
@@ -2450,7 +2271,6 @@ def show_admin_insurance_claims():
     conn.close()
 
 def display_admin_claim(claim, conn, c, show_actions=True):
-    # Unpack claim data
     claim_id = claim[0]
     booking_id = claim[1]
     user_email = claim[2]
@@ -2465,7 +2285,6 @@ def display_admin_claim(claim, conn, c, show_actions=True):
     car_model = claim[14]
     car_year = claim[15]
     
-    # Status color
     status_colors = {
         'pending': '#FFC107',
         'approved': '#28a745',
@@ -2492,7 +2311,6 @@ def display_admin_claim(claim, conn, c, show_actions=True):
             </div>
         """, unsafe_allow_html=True)
         
-        # Show evidence images if available
         if evidence_images:
             try:
                 images_data = json.loads(evidence_images)
@@ -2505,7 +2323,6 @@ def display_admin_claim(claim, conn, c, show_actions=True):
             except json.JSONDecodeError:
                 st.error("Error loading evidence images")
         
-        # Show admin notes if available
         if admin_notes:
             st.markdown(f"""
                 <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
@@ -2514,7 +2331,6 @@ def display_admin_claim(claim, conn, c, show_actions=True):
                 </div>
             """, unsafe_allow_html=True)
         
-        # Claim assessment form for pending claims
         if show_actions and claim_status.lower() == 'pending':
             with st.form(key=f"claim_review_{claim_id}"):
                 admin_comment = st.text_area("Assessment Notes", placeholder="Provide details about your decision...")
@@ -2532,7 +2348,7 @@ def display_admin_claim(claim, conn, c, show_actions=True):
                     
                     if update_claim_status(claim_id, status, admin_comment):
                         st.success(f"Claim has been {status}")
-                        st.rerun()
+                        st.experimental_rerun()
         
         st.markdown("---")
 
@@ -2542,11 +2358,9 @@ def list_your_car_page():
     if st.button('← Back to Browse', key='list_back'):
         st.session_state.current_page = 'browse_cars'
     
-    # Get user's subscription type to display benefits
     user_info = get_user_info(st.session_state.user_email)
     subscription_type = user_info[7] if user_info else 'free_host'
     
-    # Display subscription benefits for hosts
     if subscription_type.endswith('_host'):
         benefits = get_subscription_benefits(subscription_type)
         commission_rate = '15%' if subscription_type == 'free_host' else '10%' if subscription_type == 'premium_host' else '5%'
@@ -2580,7 +2394,6 @@ def list_your_car_page():
         
         description = st.text_area("Description", help="Provide detailed information about your car")
         
-        # Image upload
         uploaded_files = st.file_uploader(
             "Upload Car Images* (Select multiple files)",
             type=["jpg", "jpeg", "png"],
@@ -2592,7 +2405,6 @@ def list_your_car_page():
             cols = st.columns(len(uploaded_files))
             for idx, uploaded_file in enumerate(uploaded_files):
                 with cols[idx]:
-                    # Validate image
                     is_valid, message = validate_image(uploaded_file)
                     if is_valid:
                         image = Image.open(uploaded_file)
@@ -2601,7 +2413,6 @@ def list_your_car_page():
                         st.error(message)
             st.markdown("</div>", unsafe_allow_html=True)
         
-        # Additional features
         st.markdown("<h3 style='color: #4B0082;'>Additional Features</h3>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -2614,7 +2425,6 @@ def list_your_car_page():
             sunroof = st.checkbox("Sunroof")
             navigation = st.checkbox("Navigation")
         
-        # Terms and conditions
         st.markdown("---")
         agree = st.checkbox("I agree to the terms and conditions")
         
@@ -2628,7 +2438,6 @@ def list_your_car_page():
                     conn = sqlite3.connect('car_rental.db')
                     c = conn.cursor()
                     
-                    # Create specs dictionary
                     specs = {
                         "engine": engine,
                         "mileage": mileage,
@@ -2643,7 +2452,6 @@ def list_your_car_page():
                         }
                     }
                     
-                    # Insert listing
                     c.execute('''
                         INSERT INTO car_listings 
                         (owner_email, model, year, price, location, description, 
@@ -2657,7 +2465,6 @@ def list_your_car_page():
                     
                     listing_id = c.lastrowid
                     
-                    # Save images
                     for idx, file in enumerate(uploaded_files):
                         image_data = save_uploaded_image(file)
                         if image_data:
@@ -2665,11 +2472,10 @@ def list_your_car_page():
                                 INSERT INTO listing_images 
                                 (listing_id, image_data, is_primary)
                                 VALUES (?, ?, ?)
-                            ''', (listing_id, image_data, idx == 0))  # Only the first image is primary
+                            ''', (listing_id, image_data, idx == 0))
                     
                     conn.commit()
                     
-                    # Create notification
                     create_notification(
                         st.session_state.user_email,
                         f"Your listing for {model} has been submitted for review",
@@ -2677,7 +2483,7 @@ def list_your_car_page():
                     )
                     
                     st.success("Your car has been listed successfully! Our team will review it shortly.")
-                    time.sleep(2)  # Give user time to read the message
+                    time.sleep(2)
                     st.session_state.current_page = 'my_listings'
                     
                 except Exception as e:
@@ -2699,7 +2505,6 @@ def my_listings_page():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Get user's listings with their images
     c.execute('''
         SELECT cl.*, GROUP_CONCAT(li.image_data) as images
         FROM car_listings cl
@@ -2731,7 +2536,7 @@ def my_listings_page():
                     </div>
                 """, unsafe_allow_html=True)
                 
-                if listing[-1]:  # If there are images
+                if listing[-1]:
                     images = listing[-1].split(',')
                     st.markdown("<div class='image-gallery'>", unsafe_allow_html=True)
                     cols = st.columns(len(images))
@@ -2744,7 +2549,6 @@ def my_listings_page():
                             )
                     st.markdown("</div>", unsafe_allow_html=True)
                 
-                # Get review if exists
                 c.execute('''
                     SELECT comment, review_status, created_at
                     FROM admin_reviews
@@ -2764,7 +2568,6 @@ def my_listings_page():
     
     conn.close()
 
-
 def notifications_page():
     st.markdown("<h1>Notifications</h1>", unsafe_allow_html=True)
     
@@ -2776,10 +2579,8 @@ def notifications_page():
     conn = sqlite3.connect('car_rental.db')
     c = conn.cursor()
     
-    # Mark all notifications as read when viewing
     mark_notifications_as_read(st.session_state.user_email)
     
-    # Fetch notifications
     c.execute('''
         SELECT * FROM notifications 
         WHERE user_email = ? 
@@ -2788,7 +2589,6 @@ def notifications_page():
     
     notifications = c.fetchall()
     
-    # Clear notifications functionality
     with col2:
         if notifications:
             if st.button('🗑️ Clear All'):
@@ -2810,7 +2610,6 @@ def notifications_page():
         return
     
     for notif in notifications:
-        # Color code notifications by type
         notification_colors = {
             'welcome': 'blue',
             'booking_confirmed': 'green',
@@ -2841,11 +2640,9 @@ def update_bookings_table():
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Check existing columns
         c.execute("PRAGMA table_info(bookings)")
         columns = [column[1] for column in c.fetchall()]
         
-        # Add missing columns if they don't exist
         if 'insurance_price' not in columns:
             c.execute("ALTER TABLE bookings ADD COLUMN insurance_price REAL DEFAULT 0")
         if 'driver_price' not in columns:
@@ -2862,6 +2659,7 @@ def update_bookings_table():
     finally:
         if conn:
             conn.close()
+
 def about_us_page():
     st.markdown("<h1>About Luxury Car Rentals</h1>", unsafe_allow_html=True)
     
@@ -2918,7 +2716,6 @@ def about_us_page():
         """, unsafe_allow_html=True)
     
     with col2:
-        # SDG Logos and sustainability images
         st.image("https://www.localgovernmentassociation.sa.gov.au/__data/assets/image/0016/1205080/SDG-11.jpg", 
                 caption="SDG 11: Sustainable Cities and Communities")
         st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDayMFgGtUTvd6D_cWCYbCVQ46Hp0_6Bsh7xsODPvFX4nM3l63n8G11Zl6b3pWfE_Ia0A&usqp=CAU", 
@@ -2943,17 +2740,14 @@ def about_us_page():
     
     Follow us on social media: @LuxuryCarRentalsUAE
     """, unsafe_allow_html=True)
+
 def persist_session():
-    """Ensure session persistence by storing login info in cookies"""
-    # If we're logged in but haven't stored credentials in the session_state
     if 'persisted' not in st.session_state and st.session_state.logged_in:
-        st.session_state.persisted = True  # Mark as persisted
-        st.session_state.last_email = st.session_state.user_email  # Store the email
+        st.session_state.persisted = True
+        st.session_state.last_email = st.session_state.user_email
         
-    # If we're not logged in but we have persisted credentials, restore them
     if not st.session_state.logged_in and 'persisted' in st.session_state and 'last_email' in st.session_state:
         if st.session_state.last_email:
-            # Verify the user still exists in the database
             try:
                 conn = sqlite3.connect('car_rental.db')
                 c = conn.cursor()
@@ -2962,23 +2756,20 @@ def persist_session():
                 conn.close()
                 
                 if user:
-                    # Restore login state
                     st.session_state.logged_in = True
                     st.session_state.user_email = st.session_state.last_email
                     print(f"Restored session for {st.session_state.user_email}")
             except Exception as e:
                 print(f"Error restoring session: {e}")
+
 def main():
-    # Create necessary folders
     create_folder_structure()
     
-    # Setup or update database
     if not os.path.exists('car_rental.db'):
         setup_database()
     else:
         update_bookings_table()
     
-    # Persistent login state initialization
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     
@@ -2988,10 +2779,8 @@ def main():
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 'welcome'
     
-    # Call session persistence function 
     persist_session()
     
-    # Verify login persistence
     if st.session_state.logged_in:
         try:
             conn = sqlite3.connect('car_rental.db')
@@ -3000,7 +2789,6 @@ def main():
             user = c.fetchone()
             conn.close()
             
-            # If no user found, force logout
             if not user:
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
@@ -3008,15 +2796,12 @@ def main():
         except Exception as e:
             print(f"Login verification error: {e}")
     
-    # Sidebar for logged-in users
     if st.session_state.logged_in:
         with st.sidebar:
-            # Get user info
             user_info = get_user_info(st.session_state.user_email)
             
-            # Display profile section
             if user_info:
-                if user_info[6]:  # profile picture
+                if user_info[6]:
                     st.markdown(f"""
                         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                             <img src="data:image/jpeg;base64,{user_info[6]}" 
@@ -3040,17 +2825,14 @@ def main():
             
             st.markdown("### My Account")
             
-            # Get user role
             role = get_user_role(st.session_state.user_email)
             
-            # Admin panel for admin users
             if role == 'admin':
                 st.markdown("### Admin Functions")
                 if st.button("🔧 Admin Panel"):
                     st.session_state.current_page = 'admin_panel'
                 st.markdown("---")
             
-            # Navigation buttons
             nav_items = [
                 ("🚗 Browse Cars", 'browse_cars'),
                 ("📝 My Listings", 'my_listings'),
@@ -3066,7 +2848,6 @@ def main():
                 if st.button(label):
                     st.session_state.current_page = page
             
-            # Notifications
             unread_count = get_unread_notifications_count(st.session_state.user_email)
             notification_label = f"🔔 Notifications ({unread_count})" if unread_count > 0 else "🔔 Notifications"
             if st.button(notification_label):
@@ -3074,7 +2855,6 @@ def main():
             
             st.markdown("---")
             
-            # Logout button
             if st.button("👋 Logout"):
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
@@ -3083,13 +2863,11 @@ def main():
                 if 'last_email' in st.session_state:
                     del st.session_state.last_email
                 st.session_state.current_page = 'welcome'
-                st.rerun()
+                st.experimental_rerun()
     
-    # Page routing
     if not st.session_state.logged_in and st.session_state.current_page not in ['welcome', 'login', 'signup', 'browse_cars', 'about_us']:
         st.session_state.current_page = 'welcome'
     
-    # Page rendering
     page_handlers = {
         'welcome': welcome_page,
         'login': login_page,
@@ -3108,19 +2886,16 @@ def main():
         'about_us': about_us_page
     }
     
-    # Authentication check for protected pages
     protected_pages = [
         'list_your_car', 'my_listings', 'notifications', 
         'my_bookings', 'owner_bookings', 'book_car', 'admin_panel',
         'subscription_plans', 'insurance_claims'
     ]
     
-    # Render the current page
     current_page = st.session_state.current_page
     
     if current_page in protected_pages:
         if st.session_state.logged_in:
-            # Special handling for admin panel
             if current_page == 'admin_panel' and get_user_role(st.session_state.user_email) != 'admin':
                 st.error("Access denied. Admin privileges required.")
                 st.session_state.current_page = 'browse_cars'
@@ -3133,6 +2908,7 @@ def main():
             login_page()
     else:
         page_handlers.get(current_page, welcome_page)()
+
 if __name__ == '__main__':
     try:
         main()
