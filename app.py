@@ -1,3 +1,23 @@
+To make the design of the app more professional, you can enhance the layout, styling, and interaction elements. Here are some suggestions to improve the overall look and feel of your Streamlit app:
+
+1. **Update the Page Configuration:**
+   Set a custom favicon and theme color.
+
+2. **Improve the Layout:**
+   Use Streamlit's layout options to organize components better. Use columns, expanders, and containers to structure the content.
+
+3. **Enhance Styling:**
+   Use more advanced CSS to style the app. Improve the color scheme, typography, and spacing.
+
+4. **Add Interactive Elements:**
+   Use Streamlit's widgets (like sliders, select boxes, and date pickers) to make the interface more interactive.
+
+5. **Use Custom Components:**
+   Include custom HTML/CSS components for better visuals.
+
+Here's an updated version of your `app.py` with some of these improvements:
+
+```python
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -12,7 +32,12 @@ import time
 from dateutil.relativedelta import relativedelta
 
 # Page config and custom CSS
-st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
+st.set_page_config(
+    page_title="Luxury Car Rentals",
+    page_icon="🚗",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 st.markdown("""
     <style>
@@ -22,18 +47,26 @@ st.markdown("""
             --secondary-color: #6A0DAD;
             --background-color: #F4F4F8;
             --text-color: #333;
+            --border-radius: 10px;
         }
 
         /* Global Styles */
         .stApp {
             background-color: var(--background-color);
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem;
+        }
+
+        /* Layout */
+        .main-content {
+            max-width: 1200px;
+            margin: auto;
         }
 
         /* Button Styling */
         .stButton>button {
             width: 100%;
-            border-radius: 20px;
+            border-radius: var(--border-radius);
             height: 3em;
             background-color: var(--primary-color);
             color: white;
@@ -52,14 +85,9 @@ st.markdown("""
             box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
         
-        /* Layout */
-        .css-1d391kg {
-            padding: 2rem 1rem;
-        }
-        
         /* Input Styling */
         input[type="text"], input[type="password"] {
-            border-radius: 20px;
+            border-radius: var(--border-radius);
             padding: 10px 15px;
             border: 2px solid var(--primary-color);
             transition: all 0.3s ease;
@@ -71,7 +99,7 @@ st.markdown("""
         }
         
         /* Headings */
-        h1 {
+        h1, h2, h3 {
             color: var(--primary-color);
             text-align: center;
             padding: 1rem 0;
@@ -80,9 +108,9 @@ st.markdown("""
         }
         
         /* Card Styling */
-        .car-card {
+        .card {
             background-color: white;
-            border-radius: 15px;
+            border-radius: var(--border-radius);
             padding: 1rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             margin: 1rem 0;
@@ -90,64 +118,9 @@ st.markdown("""
             border: 1px solid #e1e1e8;
         }
         
-        .car-card:hover {
+        .card:hover {
             transform: translateY(-10px);
             box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        /* Message Styling */
-        .success-message {
-            background-color: #E8F5E9;
-            color: #2E7D32;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #2E7D32;
-        }
-        
-        .error-message {
-            background-color: #FFEBEE;
-            color: #C62828;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            border-left: 4px solid #C62828;
-        }
-        
-        /* Status Badge */
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-        }
-        
-        .status-badge.pending {
-            background-color: #FFC107;
-            color: #333;
-        }
-        
-        .status-badge.approved {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .status-badge.rejected {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        /* Admin Review Card */
-        .admin-review-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5rem 0;
-            border: 1px solid #e1e1e8;
         }
         
         /* Image Gallery */
@@ -160,7 +133,7 @@ st.markdown("""
         
         .image-gallery img {
             width: 100%;
-            border-radius: 10px;
+            border-radius: var(--border-radius);
             transition: transform 0.3s ease;
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
@@ -168,83 +141,15 @@ st.markdown("""
         .image-gallery img:hover {
             transform: scale(1.05);
         }
-        
+
         /* Profile Picture */
         .profile-picture {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            border-radius: var(--border-radius);
             object-fit: cover;
             border: 2px solid var(--primary-color);
-        }
-        
-        /* Subscription Cards */
-        .subscription-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1rem 0;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
-        }
-        
-        .subscription-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-        }
-        
-        .subscription-card.premium {
-            border-top: 5px solid #4B0082;
-        }
-        
-        .subscription-card.elite {
-            border-top: 5px solid #FFD700;
-        }
-        
-        .subscription-card h3 {
-            text-align: center;
-            margin-bottom: 1rem;
-            color: var(--primary-color);
-        }
-        
-        .subscription-price {
-            font-size: 1.8rem;
-            text-align: center;
-            margin: 1rem 0;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        
-        .subscription-features {
-            flex-grow: 1;
-        }
-        
-        .subscription-features ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        
-        .subscription-features li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .subscription-features li:before {
-            content: "✓";
-            margin-right: 0.5rem;
-            color: #28a745;
-        }
-        
-        .insurance-claim-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin: 1.5rem 0;
-            border: 1px solid #e1e1e8;
+            margin: auto;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -262,9 +167,7 @@ if 'selected_car' not in st.session_state:
 # Database setup - Modified for persistent storage
 def setup_database():
     try:
-        # Check if database exists first, don't remove it
         db_exists = os.path.exists('car_rental.db')
-        
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
@@ -301,8 +204,6 @@ def setup_database():
                 FOREIGN KEY (owner_email) REFERENCES users (email)
             )
         ''')
-
-
 
         # Create listing_images table
         c.execute('''
@@ -374,9 +275,7 @@ def setup_database():
             )
         ''')
 
-        
-
-# Create admin_reviews table
+        # Create admin_reviews table
         c.execute('''
             CREATE TABLE IF NOT EXISTS admin_reviews (
                 id INTEGER PRIMARY KEY,
@@ -439,31 +338,25 @@ def setup_database():
         if conn:
             conn.close()
 
-
 # Authentication functions
 def hash_password(password):
-    """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def create_user(full_name, email, phone, password, profile_picture=None, role='user'):
-    """Create a new user account with optional profile picture"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Check if user already exists
         c.execute('SELECT * FROM users WHERE email = ?', (email,))
         if c.fetchone():
             return False
             
-        # Create new user
         c.execute(
             'INSERT INTO users (full_name, email, phone, password, profile_picture, role) VALUES (?, ?, ?, ?, ?, ?)',
             (full_name, email, phone, hash_password(password), profile_picture, role)
         )
         conn.commit()
         
-        # Create welcome notification
         create_notification(
             email,
             "Welcome to Luxury Car Rentals! Start exploring our premium collection.",
@@ -478,9 +371,7 @@ def create_user(full_name, email, phone, password, profile_picture=None, role='u
         conn.close()
 
 def verify_user(email, password):
-    """Verify user credentials"""
     try:
-        # Special case for admin
         if email == "admin@luxuryrentals.com" and password == "admin123":
             return True
             
@@ -500,7 +391,6 @@ def verify_user(email, password):
             conn.close()
 
 def get_user_role(email):
-    """Get user's role from database"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -515,7 +405,6 @@ def get_user_role(email):
             conn.close()
 
 def get_user_info(email):
-    """Get user's full information"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -531,23 +420,19 @@ def get_user_info(email):
             conn.close()
 
 def update_user_subscription(email, plan_type, months=1):
-    """Update user's subscription"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
         
-        # Get current date and calculate expiry
         start_date = datetime.now().date()
         end_date = start_date + relativedelta(months=months)
         
-        # Update user subscription
         c.execute('''
             UPDATE users 
             SET subscription_type = ?, subscription_expiry = ?
             WHERE email = ?
         ''', (plan_type, end_date.isoformat(), email))
         
-        # Calculate amount based on plan and duration
         amount = 0
         if plan_type == 'premium_renter':
             amount = 20 * months
@@ -558,7 +443,6 @@ def update_user_subscription(email, plan_type, months=1):
         elif plan_type == 'elite_host':
             amount = 100 * months
         
-        # Add to subscription history
         c.execute('''
             INSERT INTO subscription_history
             (user_email, plan_type, start_date, end_date, amount_paid, payment_method, status)
@@ -575,13 +459,11 @@ def update_user_subscription(email, plan_type, months=1):
         
         conn.commit()
         
-        # Create notification
         create_notification(
             email,
             f"Your subscription to {plan_type.replace('_', ' ').title()} has been activated until {end_date.strftime('%d %b %Y')}",
             "subscription_activated"
         )
-
 
         return True
     except sqlite3.Error as e:
@@ -592,9 +474,7 @@ def update_user_subscription(email, plan_type, months=1):
             conn.close()
 
 def get_subscription_benefits(plan_type):
-    """Get subscription benefits based on plan type"""
     benefits = {
-        # Renter plans
         'free_renter': {
             'service_fees': 'Standard',
             'booking_priority': 'None',
@@ -627,8 +507,6 @@ def get_subscription_benefits(plan_type):
             'upgrades': 'Free when available',
             'concierge': 'Personal booking assistant'
         },
-        
-        # Host plans
         'free_host': {
             'visibility': 'Standard',
             'commission': '15% per booking',
@@ -663,10 +541,8 @@ def get_subscription_benefits(plan_type):
     
     return benefits.get(plan_type, benefits['free_renter'])
 
-
 # Notification functions
 def create_notification(user_email, message, type):
-    """Create a new notification"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -682,7 +558,6 @@ def create_notification(user_email, message, type):
             conn.close()
 
 def get_unread_notifications_count(user_email):
-    """Get count of unread notifications"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
@@ -699,7 +574,6 @@ def get_unread_notifications_count(user_email):
             conn.close()
 
 def mark_notifications_as_read(user_email):
-    """Mark all notifications as read for a user"""
     try:
         conn = sqlite3.connect('car_rental.db')
         c = conn.cursor()
